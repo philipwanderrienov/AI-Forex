@@ -1,0 +1,74 @@
+                ┌─────────────────────────┐
+                │     DATA SOURCES        │
+                ├─────────────────────────┤
+                │ Forex Price / Candle    │
+                │ Economic Calendar       │
+                │ World News              │
+                │ Macro Economic Data     │
+                │ Central Bank News       │
+                └───────────┬─────────────┘
+                            │
+                            ▼
+                ┌─────────────────────────┐
+                │  DATA INGESTION LAYER   │
+                │                         │
+                │ Normalize               │
+                │ Deduplicate News        │
+                │ Map News → Currency     │
+                │ Store Historical Data   │
+                └───────────┬─────────────┘
+                            │
+            ┌───────────────┼────────────────┐
+            ▼               ▼                ▼
+     ┌─────────────┐ ┌─────────────┐ ┌──────────────┐
+     │ TECHNICAL   │ │ FUNDAMENTAL │ │ NEWS / AI    │
+     │ ENGINE      │ │ ENGINE      │ │ ENGINE       │
+     │             │ │             │ │              │
+     │ RSI         │ │ Interest    │ │ Sentiment    │
+     │ EMA         │ │ Inflation   │ │ Impact       │
+     │ ATR         │ │ GDP         │ │ Currency     │
+     │ MACD        │ │ NFP etc.    │ │ Relevance    │
+     │ S/R         │ │ CentralBank │ │ Surprise     │
+     └──────┬──────┘ └──────┬──────┘ └──────┬───────┘
+            │               │                │
+            └───────────────┼────────────────┘
+                            ▼
+                 ┌──────────────────────┐
+                 │   MARKET BRAIN       │
+                 │                      │
+                 │ Currency Strength    │
+                 │ Pair Scoring         │
+                 │ Regime Detection     │
+                 │ Conflict Detection   │
+                 │ Confidence Score     │
+                 └──────────┬───────────┘
+                            ▼
+                 ┌──────────────────────┐
+                 │     RISK ENGINE      │
+                 │                      │
+                 │ Volatility           │
+                 │ News proximity       │
+                 │ SL / TP estimation   │
+                 │ Risk / Reward        │
+                 │ Position sizing      │
+                 └──────────┬───────────┘
+                            ▼
+                 ┌──────────────────────┐
+                 │     AI ADVISOR       │
+                 │                      │
+                 │ BUY / SELL / WAIT    │
+                 │ Confidence           │
+                 │ Explanation          │
+                 │ Invalidation         │
+                 │ Risk warnings        │
+                 └──────────┬───────────┘
+                            ▼
+                 ┌──────────────────────┐
+                 │      DASHBOARD       │
+                 │                      │
+                 │ Best Pair Today      │
+                 │ Pair Ranking         │
+                 │ Market Narrative     │
+                 │ News Impact          │
+                 │ Trade Journal        │
+                 └──────────────────────┘

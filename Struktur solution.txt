@@ -1,0 +1,21 @@
+ForexIntelligence.sln
+
+src/
+│
+├── ForexIntelligence.Api
+│
+├── ForexIntelligence.Application
+│
+├── ForexIntelligence.Domain
+│
+├── ForexIntelligence.Infrastructure
+│
+├── ForexIntelligence.Persistence
+│
+├── ForexIntelligence.Workers
+│
+├── ForexIntelligence.AI
+│
+├── ForexIntelligence.Analytics
+│
+└── ForexIntelligence.Backtesting

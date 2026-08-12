@@ -1,0 +1,37 @@
+                      ┌───────────────┐
+                      │ MARKET DATA   │
+                      │ PROVIDERS     │
+                      │               │
+                      │ OANDA         │
+                      │ TwelveData    │
+                      │ AlphaVantage  │
+                      └───────┬───────┘
+                              │
+                              ▼
+
+                     Market Data Worker
+                              │
+                              ▼
+                     Normalization Layer
+                              │
+                              ▼
+                        PostgreSQL
+                           Redis
+
+
+ NEWS PROVIDERS                           ECONOMIC DATA
+───────────────                         ────────────────
+GDELT                                   FRED
+Financial News                          Economic Calendar
+Central Banks                           Government API
+RSS / API                               Central Banks
+      │                                       │
+      ▼                                       ▼
+News Collector                         Economic Worker
+      │                                       │
+      ▼                                       ▼
+News Normalizer                        Data Normalizer
+      │                                       │
+      └───────────────┬───────────────────────┘
+                      ▼
+                  AI Pipeline

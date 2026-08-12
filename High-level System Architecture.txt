@@ -1,0 +1,48 @@
+┌───────────────────────────────────────────────────────────────┐
+│                         FRONTEND                              │
+│                                                              │
+│                       Angular                                │
+│                                                              │
+│  Dashboard                                                   │
+│  Pair Scanner                                                │
+│  Currency Strength                                           │
+│  News Intelligence                                           │
+│  Economic Calendar                                           │
+│  Trade Setup                                                 │
+│  Backtesting                                                 │
+│  Trade Journal                                               │
+└───────────────────────────────┬───────────────────────────────┘
+                                │
+                                │ HTTPS / WebSocket
+                                ▼
+┌───────────────────────────────────────────────────────────────┐
+│                    ASP.NET CORE API                           │
+│                                                               │
+│                    API Gateway / BFF                          │
+│                                                               │
+│   Authentication                                              │
+│   Authorization                                               │
+│   Rate Limiting                                               │
+│   Request Aggregation                                         │
+│   WebSocket / SignalR                                         │
+└──────────────┬────────────────┬──────────────┬────────────────┘
+               │                │              │
+               ▼                ▼              ▼
+┌──────────────────────────────────────────────────────────────┐
+│                    APPLICATION CORE                          │
+├──────────────────────────────────────────────────────────────┤
+│                                                              │
+│  Market Data Module                                          │
+│  News Intelligence Module                                    │
+│  Economic Data Module                                        │
+│  Technical Analysis Module                                   │
+│  Fundamental Analysis Module                                 │
+│  Currency Strength Engine                                    │
+│  Market Regime Engine                                        │
+│  Pair Scanner Engine                                         │
+│  Risk Management Engine                                      │
+│  AI Advisor                                                  │
+│  Backtesting Engine                                          │
+│  Trade Journal                                               │
+│                                                              │
+└──────────────────────────────────────────────────────────────┘

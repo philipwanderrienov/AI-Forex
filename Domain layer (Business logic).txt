@@ -1,0 +1,34 @@
+ForexIntelligence.Domain
+│
+├── Market
+│   ├── Currency.cs
+│   ├── CurrencyPair.cs
+│   ├── Candle.cs
+│   ├── MarketPrice.cs
+│   └── MarketSession.cs
+│
+├── Technical
+│   ├── TechnicalSignal.cs
+│   ├── Indicator.cs
+│   └── MarketStructure.cs
+│
+├── Fundamental
+│   ├── EconomicEvent.cs
+│   ├── EconomicIndicator.cs
+│   └── FundamentalScore.cs
+│
+├── News
+│   ├── NewsArticle.cs
+│   ├── NewsImpact.cs
+│   └── NewsSentiment.cs
+│
+├── Trading
+│   ├── TradeSignal.cs
+│   ├── TradeSetup.cs
+│   ├── RiskAssessment.cs
+│   └── TradeOutcome.cs
+│
+└── Analysis
+    ├── CurrencyStrength.cs
+    ├── PairScore.cs
+    └── MarketRegime.cs

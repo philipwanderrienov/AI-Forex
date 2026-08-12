@@ -1,0 +1,61 @@
+                           INTERNET
+                              │
+              ┌───────────────┼─────────────────┐
+              │               │                 │
+              ▼               ▼                 ▼
+         Forex API         News API       Economic API
+              │               │                 │
+              │               │                 │
+              ▼               ▼                 ▼
+        Market Worker     News Worker      Macro Worker
+              │               │                 │
+              └───────────────┼─────────────────┘
+                              │
+                              ▼
+                    DATA INGESTION LAYER
+                              │
+                 ┌────────────┼────────────┐
+                 │            │            │
+                 ▼            ▼            ▼
+            PostgreSQL      Redis       Message Queue
+                                         RabbitMQ
+                                            │
+                                            ▼
+                                  PROCESSING ENGINE
+                                            │
+                   ┌────────────────────────┼───────────────┐
+                   │                        │               │
+                   ▼                        ▼               ▼
+             Technical Engine       Fundamental Engine   AI News
+                   │                        │               │
+                   │                        │               ▼
+                   │                        │           Vector DB
+                   │                        │               │
+                   └──────────────┬─────────┴───────────────┘
+                                  │
+                                  ▼
+                        CURRENCY STRENGTH
+                                  │
+                                  ▼
+                          MARKET REGIME
+                                  │
+                                  ▼
+                           PAIR SCANNER
+                                  │
+                                  ▼
+                        OPPORTUNITY ENGINE
+                                  │
+                                  ▼
+                            RISK ENGINE
+                                  │
+                                  ▼
+                             AI ADVISOR
+                                  │
+                                  ▼
+                           ASP.NET CORE API
+                                  │
+                                  ▼
+                              Angular
+                                  │
+                                  ▼
+                           USER DASHBOARD

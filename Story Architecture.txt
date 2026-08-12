@@ -1,0 +1,105 @@
+----- MARKET DATA MODULE -----
+
+OANDA
+   │
+   ▼
+MarketDataWorker
+   │
+   ▼
+MarketDataNormalizer
+   │
+   ├── Candle
+   ├── Bid
+   ├── Ask
+   ├── Spread
+   └── Tick
+   │
+   ▼
+PostgreSQL
+   +
+Redis
+
+
+Redis digunakan untuk menampung data realtime, seperti:
+market:EURUSD:price
+market:EURUSD:M5
+market:EURUSD:H1
+
+PostgreSQL:
+Candles:
+	Id
+	Pair
+	Timestamp
+	Open
+	High
+	Low
+	Close
+	Volume
+	Timeframe
+	
+	
+----- TECHNICAL ANALYSIS ENGINE (Disini tidak menggunakan AI) -----
+
+Candle
+ ↓
+Indicator Calculator
+ ↓
+Market Structure
+ ↓
+Technical Score
+
+Indikator awal:
+	EMA20
+	EMA50
+	EMA200
+	RSI14
+	MACD
+	ATR14
+	Support
+	Resistance
+	Swing High
+	Swing Low
+	Higher High
+	Higher Low
+	Lower High
+	Lower Low
+	
+Sample Output JSON:
+	{
+		"pair": "EURUSD",
+		"timeframe": "H1",
+
+		"trend": "BEARISH",
+
+		"emaScore": -7,
+		"rsiScore": -2,
+		"structureScore": -8,
+
+		"technicalScore": -7.4
+	}
+	
+	
+----- NEWS INTELLIGENCE ARCHITECTURE (Disini Menggunakan AI) -----
+News Sources
+     │
+     ▼
+News Collector
+     │
+     ▼
+Deduplication
+     │
+     ▼
+News Normalization
+     │
+     ▼
+LLM Classification
+     │
+     ├── Currency affected
+     ├── Event category
+     ├── Sentiment
+     ├── Impact
+     ├── Direction
+     └── Duration
+     │
+     ▼
+News Intelligence DB
