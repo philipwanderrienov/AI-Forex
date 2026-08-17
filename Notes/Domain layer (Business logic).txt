@@ -2,7 +2,7 @@ ForexIntelligence.Domain
 │
 ├── Market
 │   ├── Currency.cs
-│   ├── CurrencyPair.cs
+│   ├── TradingInstrument.cs
 │   ├── Candle.cs
 │   ├── MarketPrice.cs
 │   └── MarketSession.cs

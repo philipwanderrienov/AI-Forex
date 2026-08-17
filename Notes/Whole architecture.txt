@@ -3,11 +3,17 @@
               ┌───────────────┼─────────────────┐
               │               │                 │
               ▼               ▼                 ▼
-         Forex API         News API       Economic API
+       Broker / MT5        News API       Economic API
               │               │                 │
               │               │                 │
               ▼               ▼                 ▼
-        Market Worker     News Worker      Macro Worker
+       MQL5 EA Exporter   News Worker      Macro Worker
+              │
+              ▼
+       Python Data Bridge
+              │
+              ▼
+        Market Worker
               │               │                 │
               └───────────────┼─────────────────┘
                               │

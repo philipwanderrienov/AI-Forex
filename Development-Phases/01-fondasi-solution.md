@@ -17,6 +17,13 @@ tests/
 ├── ForexIntelligence.Domain.Tests
 ├── ForexIntelligence.Application.Tests
 └── ForexIntelligence.IntegrationTests
+mt5-bridge/
+├── src/
+├── tests/
+├── pyproject.toml
+└── .env.example
+mt5-exporter/
+└── ForexIntelligenceDataExporter.mq5
 ```
 
 ## Pekerjaan
@@ -27,10 +34,12 @@ tests/
 - Terapkan dependency direction: Domain tidak bergantung pada Infrastructure atau API.
 - Aktifkan nullable reference types, analyzers, formatting, dan warnings yang relevan.
 - Buat konfigurasi per environment tanpa menyimpan secret di repository.
+- Siapkan Python environment terisolasi untuk `mt5-bridge`; backend bisnis tetap .NET.
+- Pin versi Python dan dependency, serta sediakan perintah setup yang dapat diikuti pemula.
 
 ### 2. Implementasikan domain foundation
 
-- Buat value object `Currency`, `CurrencyPair`, `Timeframe`, `Money`, dan `Percentage` bila diperlukan.
+- Buat value object `Currency`, `TradingInstrument`, `Timeframe`, `Money`, dan `Percentage`; `TradingInstrument` membedakan forex dari precious metal.
 - Buat entity awal `Candle` beserta invariants OHLC.
 - Tambahkan domain exception dan result/error model.
 - Hindari dependensi EF Core pada model domain bila tidak diperlukan.
@@ -56,6 +65,7 @@ tests/
 - Integration test menggunakan database nyata/container.
 - Script atau pipeline untuk restore, build, test, dan migration check.
 - Dokumentasikan cara menjalankan proyek dari mesin baru.
+- Dokumentasikan installer MT5 macOS, konfigurasi allowed URL untuk EA exporter, Python bridge, serta batas bahwa exporter/bridge tidak boleh mengirim order.
 
 ## Deliverables
 
@@ -70,4 +80,4 @@ tests/
 - API dan worker dapat startup dengan konfigurasi lokal.
 - Database dapat dibuat dari migration tanpa langkah manual tersembunyi.
 - Dependency test atau review membuktikan Domain tetap independen.
-
+- EA exporter dapat mengirim fixture dari terminal demo MT5 ke Python bridge localhost dan tidak membaca/menyimpan password akun.

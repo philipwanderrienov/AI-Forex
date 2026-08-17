@@ -12,11 +12,13 @@ Mengukur apakah aturan dan skor memiliki nilai sebelum dipercaya, serta membangu
 - Bedakan event time, published time, received time, dan processing time.
 - Simpan revisi data ekonomi agar backtest tidak memakai nilai revisi masa depan.
 - Gunakan candle final sesuai cutoff dan hindari look-ahead pada multi-timeframe.
+- Simpan identitas broker/server, simbol broker, dan dataset version karena candle dan spread dapat berbeda antar-broker.
 
 ### 2. Simulation engine
 
 - Reuse calculation/risk rules produksi, bukan membuat formula duplikat.
 - Model spread, slippage, commission, swap bila relevan, dan keterbatasan eksekusi candle.
+- Gunakan histori dari broker MT5 yang sama jika cukup; bila memakai dataset tambahan, pisahkan hasilnya dan nyatakan source secara eksplisit.
 - Definisikan aturan jika SL dan TP tersentuh pada candle yang sama.
 - Simpan configuration, code/formula version, dataset version, dan random seed.
 
@@ -56,4 +58,3 @@ Mengukur apakah aturan dan skor memiliki nilai sebelum dipercaya, serta membangu
 - Biaya transaksi dan asumsi eksekusi terlihat di laporan.
 - Hasil out-of-sample dan baseline tersedia sebelum strategi dinyatakan layak.
 - Setup produksi dapat dihubungkan secara utuh ke outcome journal.
-

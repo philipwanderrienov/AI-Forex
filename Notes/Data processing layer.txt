@@ -1,14 +1,19 @@
                       ┌───────────────┐
-                      │ MARKET DATA   │
-                      │ PROVIDERS     │
+                      │ BROKER FEED   │
                       │               │
-                      │ OANDA         │
-                      │ TwelveData    │
-                      │ AlphaVantage  │
+                      │ MetaTrader 5  │
+                      │ via MQL5 EA   │
+                      │ read-only     │
                       └───────┬───────┘
                               │
                               ▼
 
+                     MQL5 EA Exporter
+                              │
+                              ▼
+                     Python Data Bridge
+                              │
+                              ▼
                      Market Data Worker
                               │
                               ▼

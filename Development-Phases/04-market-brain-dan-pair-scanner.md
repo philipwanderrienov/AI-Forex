@@ -1,4 +1,4 @@
-# Fase 04 — Market Brain dan Pair Scanner
+# Fase 04 — Market Brain dan Instrument Scanner
 
 ## Tujuan
 
@@ -8,7 +8,7 @@ Mengubah snapshot analisis menjadi gambaran kekuatan mata uang, regime pasar, ra
 
 - **Analysis Engine:** menghasilkan evidence dan skor per dimensi.
 - **Market Brain:** menggabungkan evidence dan mendeteksi konflik.
-- **Pair Scanner:** menjalankan evaluasi untuk seluruh universe pair.
+- **Instrument Scanner:** menjalankan evaluasi untuk seluruh universe instrumen.
 - **Opportunity Engine:** menentukan apakah kandidat layak diteruskan ke Risk Engine.
 
 ## Pekerjaan
@@ -19,6 +19,7 @@ Mengubah snapshot analisis menjadi gambaran kekuatan mata uang, regime pasar, ra
 - Normalisasi agar mata uang yang muncul pada lebih banyak pair tidak otomatis unggul.
 - Pisahkan strength per timeframe dan composite strength.
 - Tangani pair yang datanya stale atau tidak lengkap.
+- Currency strength hanya berlaku pada empat instrumen forex; XAUUSD tidak dimasukkan sebagai currency pair.
 
 ### 2. Market regime
 
@@ -27,9 +28,10 @@ Mengubah snapshot analisis menjadi gambaran kekuatan mata uang, regime pasar, ra
 - Versioning threshold regime agar dapat diuji historis.
 - Izinkan strategi/aturan berbeda menurut regime.
 
-### 3. Pair score
+### 3. Instrument score
 
-- Kombinasikan currency-strength differential, technical score, regime fit, dan data quality.
+- Untuk forex, kombinasikan currency-strength differential, technical score, regime fit, dan data quality.
+- Untuk XAUUSD, gunakan formula khusus tanpa currency-strength differential sesuai fase 00.
 - Deteksi konflik, misalnya trend H4 bullish tetapi struktur H1 bearish.
 - Simpan kontribusi setiap faktor dan alasan penalti.
 - Jangan masukkan fundamental/news sampai modul tersebut tersedia; gunakan status `not_available`.
@@ -51,8 +53,8 @@ Mengubah snapshot analisis menjadi gambaran kekuatan mata uang, regime pasar, ra
 ## Deliverables
 
 - Currency strength board.
-- Market regime per pair/timeframe.
-- Pair ranking lengkap dengan score breakdown.
+- Market regime per instrument/timeframe.
+- Instrument ranking lengkap dengan score breakdown dan formula version sesuai instrument type.
 - Opportunity candidate yang siap diperiksa Risk Engine.
 
 ## Pengujian
@@ -68,4 +70,3 @@ Mengubah snapshot analisis menjadi gambaran kekuatan mata uang, regime pasar, ra
 - Setiap kandidat memiliki evidence dan alasan lolos/gagal.
 - Kondisi data buruk selalu menghasilkan blokir atau confidence penalty yang terlihat.
 - Scanner memenuhi target waktu pemrosesan MVP.
-

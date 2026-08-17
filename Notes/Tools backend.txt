@@ -6,5 +6,6 @@ Redis
 RabbitMQ
 SignalR
 Hangfire / Quartz
-ML.NET / Python ML Service
+MQL5 EA exporter + Python native macOS (read-only data bridge)
+ML.NET / Python ML Service (fase lanjutan bila terbukti perlu)
 OpenAI / Gemini / Claude

@@ -5,7 +5,11 @@ Dokumen ini menerjemahkan rancangan pada folder `Notes` menjadi fase pengembanga
 ## Prinsip pelaksanaan
 
 - Mulai sebagai **modular monolith** agar domain mudah diuji dan deployment tetap sederhana.
-- Semua waktu disimpan dalam UTC dan semua pair memakai simbol canonical, misalnya `EURUSD`.
+- Sumber market data real-time MVP adalah terminal **MetaTrader 5** yang terhubung ke broker pengguna.
+- Development memakai kebijakan **free-first**: pilih software open-source/free-tier dan hindari lisensi atau layanan berbayar selama kebutuhan MVP masih dapat dipenuhi secara aman.
+- Pada macOS, EA MQL5 read-only mengekspor data dari MT5 melalui HTTP ke Python Data Bridge native; API, domain, scoring, database, dan dashboard tetap menggunakan stack utama .NET/Angular.
+- Layanan gratis tidak boleh dianggap mempunyai SLA. Semua integrasi eksternal dibungkus adapter agar dapat dipindahkan bila kuota atau ketentuannya berubah.
+- Semua waktu disimpan dalam UTC dan semua instrumen memakai simbol canonical, misalnya `EURUSD` dan `XAUUSD`.
 - Perhitungan teknikal, scoring, dan risiko harus deterministik serta dapat diuji tanpa AI.
 - AI membantu klasifikasi dan penjelasan, bukan menjadi satu-satunya penentu keputusan.
 - Setiap sinyal harus dapat ditelusuri ke data, aturan, konfigurasi, dan versi model yang menghasilkannya.
@@ -16,8 +20,11 @@ Dokumen ini menerjemahkan rancangan pada folder `Notes` menjadi fase pengembanga
 | Fase | Fokus | Hasil utama |
 |---|---|---|
 | [00](00-discovery-dan-spesifikasi.md) | Discovery dan spesifikasi | Scope, aturan bisnis, kontrak data, dan acceptance criteria |
+| [00A](00-data-dictionary.md) | Data dictionary dan kontrak JSON | Field canonical, enum, invariants, payload antarkomponen, dan contract testing |
+| [00B](00-scoring-rules-v1.md) | Tabel aturan scoring v1 | Kondisi indikator, skor numerik, konflik timeframe, confidence, dan fixture |
+| [00C](00-risk-rules-v1.md) | Tabel aturan Risk Engine v1 | Stop-loss, target, sizing MT5, margin, exposure, circuit breaker, dan fixture |
 | [01](01-fondasi-solution.md) | Fondasi solution | Solution .NET, modul, testing, database, dan standar proyek |
-| [02](02-market-data-pipeline.md) | Market data pipeline | Candle tervalidasi dan tersimpan dari satu provider |
+| [02](02-market-data-pipeline.md) | MT5 market data pipeline | Tick/candle broker tervalidasi dan tersimpan melalui Python bridge |
 | [03](03-technical-analysis.md) | Technical analysis | Indikator, market structure, dan technical score |
 | [04](04-market-brain-dan-pair-scanner.md) | Market Brain dan scanner | Currency strength, regime, ranking, dan opportunity |
 | [05](05-risk-engine.md) | Risk engine | SL/TP, position sizing, kelayakan, dan risk warning |
@@ -60,4 +67,35 @@ Sebuah pekerjaan dianggap selesai jika:
 - Vector database sebelum kebutuhan semantic retrieval terbukti.
 - Auto-execution order; roadmap awal hanya decision-support.
 - Machine learning prediktif sebelum baseline rule-based mempunyai data evaluasi yang cukup.
+- Pengiriman, modifikasi, atau penutupan order melalui Python/MQL5; bridge MVP hanya boleh membaca market data.
+- Windows VM/VPS berbayar sebelum hasil burn-in membuktikan bahwa macOS tidak cukup stabil untuk kebutuhan MVP.
 
+## Jalur belajar Python
+
+Implementasi bridge dikerjakan bersama jalur belajar bertahap pada [Panduan Belajar Python untuk MT5](panduan-belajar-python-mt5.md). Setiap tahap menghasilkan program kecil yang dapat dijalankan dan diuji sebelum masuk ke pipeline produksi.
+
+## Kebijakan free-first
+
+Baseline development tidak memerlukan pembelian software atau server:
+
+| Kebutuhan | Pilihan awal gratis |
+|---|---|
+| Editor dan source control | VS Code, Git |
+| Backend | .NET SDK/ASP.NET Core |
+| MT5 data export | Terminal MT5 macOS + EA MQL5 read-only |
+| Data bridge dan pembelajaran | Python native macOS |
+| Frontend | Angular |
+| Database/cache | PostgreSQL dan Redis/Valkey lokal |
+| API documentation/testing | OpenAPI dan tool open-source |
+| Hosting percobaan | Lokal terlebih dahulu; free-tier Linux hanya setelah diperlukan |
+| Economic calendar | Free API yang lolos spike dan syarat lisensinya |
+| AI/LLM | OpenAI API berbayar milik pengguna; penggunaannya dibatasi, diaudit, dan tidak menjadi dependency Technical MVP |
+
+Aturan biaya:
+
+- Tidak boleh mengaktifkan subscription, resource berbayar, atau API yang dapat menagih otomatis tanpa persetujuan pemilik produk.
+- Pengecualian yang telah disetujui: pemakaian OpenAI API dari project key khusus aplikasi, dengan budget/usage cap dan observability biaya.
+- Semua free tier harus mempunyai usage cap, alert, dan fallback `UNAVAILABLE/DEGRADED`.
+- Kartu pembayaran, bila diwajibkan penyedia free tier, bukan izin untuk menghasilkan biaya.
+- “Gratis” tidak menghapus biaya listrik, koneksi internet, domain opsional, backup eksternal, maupun keterbatasan availability.
+- Saat kebutuhan produksi tidak dapat dipenuhi secara aman oleh opsi gratis, buat keputusan biaya eksplisit beserta alternatif; jangan menurunkan keamanan atau integritas data secara diam-diam.

@@ -1,6 +1,15 @@
 ----- MARKET DATA MODULE -----
 
-OANDA
+Broker
+   │
+   ▼
+MetaTrader 5 Terminal
+   │
+   ▼
+MQL5 EA Exporter (read-only)
+   │ HTTP localhost
+   ▼
+Python Data Bridge (macOS)
    │
    ▼
 MarketDataWorker
@@ -22,7 +31,7 @@ Redis
 
 Redis digunakan untuk menampung data realtime, seperti:
 market:EURUSD:price
-market:EURUSD:M5
+market:EURUSD:M15
 market:EURUSD:H1
 
 PostgreSQL:

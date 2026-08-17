@@ -4,7 +4,7 @@
 │                       Angular                                │
 │                                                              │
 │  Dashboard                                                   │
-│  Pair Scanner                                                │
+│  Instrument Scanner                                          │
 │  Currency Strength                                           │
 │  News Intelligence                                           │
 │  Economic Calendar                                           │
@@ -39,7 +39,7 @@
 │  Fundamental Analysis Module                                 │
 │  Currency Strength Engine                                    │
 │  Market Regime Engine                                        │
-│  Pair Scanner Engine                                         │
+│  Instrument Scanner Engine                                   │
 │  Risk Management Engine                                      │
 │  AI Advisor                                                  │
 │  Backtesting Engine                                          │

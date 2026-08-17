@@ -1,7 +1,7 @@
                 ┌─────────────────────────┐
                 │     DATA SOURCES        │
                 ├─────────────────────────┤
-                │ Forex Price / Candle    │
+                │ Broker MT5 Tick/Candle  │
                 │ Economic Calendar       │
                 │ World News              │
                 │ Macro Economic Data     │
