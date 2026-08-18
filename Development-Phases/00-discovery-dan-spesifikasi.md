@@ -4,7 +4,7 @@
 
 - Versi: `0.1-draft`
 - Tanggal keputusan awal: 17 Agustus 2026
-- Status: cukup untuk memulai spike teknis, belum dianggap final sampai seluruh keputusan terbuka dan contoh validasi di bagian akhir diselesaikan.
+- Status: baseline produk disetujui dan cukup untuk memulai Fase 01; penutupan formal Fase 00 menunggu spike MT5/broker, kalender ekonomi, dan target validasi strategi.
 - Pemilik produk dan pengguna MVP: satu pengguna pribadi yang melakukan eksekusi manual di MetaTrader.
 
 ## Tujuan
@@ -19,7 +19,7 @@ Mengubah visi arsitektur menjadi definisi produk dan aturan bisnis yang tidak am
 
 - Pengguna utama adalah pemilik aplikasi yang melakukan daily/intraday trading secara manual melalui MetaTrader.
 - Aplikasi mengumpulkan data, menganalisis, memberi notifikasi, menyarankan setup, dan mencatat keputusan pengguna.
-- EA MQL5 read-only membaca market data dari terminal MetaTrader 5 yang sudah login dan mengirimkannya ke Python bridge native macOS. Aplikasi **tidak** mengirim order, memodifikasi order, atau menutup posisi.
+- EA MQL5 read-only membaca market data dari terminal MetaTrader 5/Wine pada Lubuntu yang sudah login dan mengirimkannya ke Python bridge native Linux. Aplikasi **tidak** mengirim order, memodifikasi order, atau menutup posisi.
 - Tombol `BUY` dan `SELL` di aplikasi hanya mencatat tindakan yang telah/akan dilakukan pengguna di MetaTrader. Label UI wajib berbunyi `Catat BUY` dan `Catat SELL` agar tidak dianggap sebagai eksekusi broker.
 - Tombol `WAIT/SKIP` tersedia untuk mencatat bahwa suatu saran dilewati.
 
@@ -275,14 +275,14 @@ Semua input formula confidence dinormalisasi ke `[0, 1]`. UI wajib menampilkan l
 
 ### 4.1 Market data broker melalui MetaTrader 5
 
-Sumber utama MVP adalah **terminal MetaTrader 5 yang terhubung ke broker pengguna**. Pada development macOS, EA MQL5 read-only mengirim feed melalui HTTP ke Python Data Bridge native, lalu bridge meneruskannya ke backend .NET.
+Sumber utama MVP adalah **terminal MetaTrader 5 yang terhubung ke broker pengguna**. Coding tetap dilakukan pada macOS, sedangkan seluruh runtime MVP berada pada laptop fisik Lubuntu 24.04.4 LTS yang terpisah: MT5 berjalan melalui Wine, EA MQL5 read-only mengirim feed melalui HTTP localhost ke Python Data Bridge native Linux, lalu bridge meneruskannya ke backend .NET pada host yang sama.
 
 - EA menggunakan fungsi native MQL5 seperti `SymbolInfoTick`, `CopyRates`, dan metadata simbol untuk mengambil latest tick, candle/bar, spread, tick volume, real volume bila broker menyediakannya, serta waktu.
 - Candle yang digunakan adalah `M15`, `H1`, dan `H4`. Kedalaman histori mengikuti data broker dan konfigurasi `Max. bars in chart` terminal.
 - `tick_volume` adalah jumlah aktivitas tick broker, **bukan volume transaksi forex global**; `real_volume` dianggap opsional.
 - Mapping simbol ditemukan dari terminal karena broker dapat memakai suffix/prefix: contoh `EURUSD.a→EURUSD` dan `XAUUSDm→XAUUSD`.
 - Nama broker/server dan simbol asli disimpan bersama source untuk audit dan reproducibility.
-- Terminal menggunakan installer MT5 resmi macOS; Python bridge berjalan native pada macOS tanpa Windows VM.
+- Terminal mengikuti instalasi Linux resmi MT5 melalui Wine; Python bridge berjalan native pada Lubuntu tanpa Windows VM.
 - EA melakukan HTTP POST secara batch dari `OnTimer`, bukan pada setiap tick, karena `WebRequest` bersifat synchronous. URL localhost/backend wajib ditambahkan manual ke allowed URLs terminal.
 - Exporter dan bridge hanya membaca/memindahkan data. `OrderSend`, modifikasi posisi, dan operasi trading lainnya dilarang pada MVP.
 - Backend tidak menerima password akun broker; terminal yang sudah login menjadi batas autentikasi broker.
@@ -290,7 +290,8 @@ Sumber utama MVP adalah **terminal MetaTrader 5 yang terhubung ke broker penggun
 
 Referensi resmi:
 
-- [Instalasi resmi MetaTrader 5 pada macOS](https://www.metatrader5.com/en/terminal/help/start_advanced/install_mac)
+- [Instalasi resmi MetaTrader 5 pada Linux](https://www.metatrader5.com/en/terminal/help/start_advanced/install_linux)
+- [Checklist kesiapan Lubuntu dan MT5](00-lubuntu-mt5-readiness.md)
 - [MQL5 `WebRequest`](https://www.mql5.com/en/docs/network/webrequest)
 - [MQL5 `CopyRates`](https://www.mql5.com/en/docs/series/copyrates)
 - [Panduan belajar Python proyek](panduan-belajar-python-mt5.md)
@@ -413,12 +414,10 @@ Nilai harga dan lot pada contoh hanya ilustrasi struktur, bukan rekomendasi trad
 
 ## 9. Keputusan yang masih terbuka
 
-- Konfirmasi MetaTrader yang digunakan adalah MT5, bukan MT4; rancangan EA exporter memakai API dan format MQL5.
-- Jalankan spike MT5 macOS → EA `WebRequest` → Python localhost pada perangkat pengguna sebelum mengunci pipeline.
+- Jalankan spike MT5/Wine pada Lubuntu → EA `WebRequest` → Python localhost dan soak test minimum lima hari trading sebelum mengunci pipeline.
 - Catat broker/server, pola nama simbol, ketersediaan lima instrumen, kedalaman histori, dan metadata contract/tick/volume dari akun demo pengguna.
 - Verifikasi akses dan coverage FMP Economic Calendar pada paket Basic saat spike dilakukan.
 - Implementasikan sumber equity utama dari `AccountSnapshot` MT5 read-only; input manual hanya fallback eksplisit dan tidak boleh dianggap fresh tanpa timestamp serta konfirmasi pengguna.
-- Tentukan apakah in-app notification cukup atau diperlukan browser/email/mobile notification setelah MVP.
 - Kalibrasi bobot, threshold, spread abnormal, session window, dan embargo berita melalui backtest/forward test; nilai v1 di dokumen adalah baseline yang versioned.
 - Definisikan acceptance target strategi (minimum jumlah trade, expectancy, dan maximum drawdown); jangan menetapkan target win rate saja.
 

@@ -1,0 +1,36 @@
+@ForexIntelligence.Api_HostAddress = http://localhost:5204
+
+GET {{ForexIntelligence.Api_HostAddress}}/api/system-status
+Accept: application/json
+
+###
+
+GET {{ForexIntelligence.Api_HostAddress}}/health
+
+###
+
+GET {{ForexIntelligence.Api_HostAddress}}/health/live
+
+###
+
+GET {{ForexIntelligence.Api_HostAddress}}/health/ready
+
+###
+
+POST {{ForexIntelligence.Api_HostAddress}}/api/market-data/candles
+Content-Type: application/json
+
+{
+  "instrument": "EURUSD",
+  "timeframe": "H1",
+  "openTime": "2026-08-18T08:00:00Z",
+  "closeTime": "2026-08-18T09:00:00Z",
+  "open": 1.1700,
+  "high": 1.1750,
+  "low": 1.1680,
+  "close": 1.1730,
+  "tickVolume": 100,
+  "status": "Final"
+}
+
+###

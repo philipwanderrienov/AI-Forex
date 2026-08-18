@@ -9,7 +9,7 @@ MetaTrader 5 Terminal
 MQL5 EA Exporter (read-only)
    │ HTTP localhost
    ▼
-Python Data Bridge (macOS)
+Python Data Bridge (native Linux pada host Lubuntu yang sama)
    │
    ▼
 MarketDataWorker

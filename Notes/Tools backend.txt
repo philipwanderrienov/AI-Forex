@@ -6,6 +6,6 @@ Redis
 RabbitMQ
 SignalR
 Hangfire / Quartz
-MQL5 EA exporter + Python native macOS (read-only data bridge)
+MT5/Wine pada Lubuntu + MQL5 EA exporter + Python native Linux (read-only data bridge)
 ML.NET / Python ML Service (fase lanjutan bila terbukti perlu)
 OpenAI / Gemini / Claude

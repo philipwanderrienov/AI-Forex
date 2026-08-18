@@ -1,0 +1,28 @@
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+
+[*.{cs,csproj,props,sln}]
+indent_style = space
+indent_size = 4
+
+[*.{json,yml,yaml,md}]
+indent_style = space
+indent_size = 2
+
+[*.cs]
+dotnet_sort_system_directives_first = true
+csharp_style_namespace_declarations = file_scoped:warning
+csharp_style_var_when_type_is_apparent = true:suggestion
+
+[tests/**/*.cs]
+# Sentence-style test names intentionally use underscores for scenario readability.
+dotnet_diagnostic.CA1707.severity = none
+
+[**/Data/Migrations/*.cs]
+# EF Core generates inline arrays for migration index columns.
+dotnet_diagnostic.CA1861.severity = none

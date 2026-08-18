@@ -1,0 +1,16 @@
+**/bin/
+**/obj/
+.DS_Store
+.idea/
+.vscode/
+TestResults/
+coverage/
+.env
+.env.*
+!.env.example
+.venv/
+__pycache__/
+*.py[cod]
+mt5-bridge/spool/
+*.user
+*.suo

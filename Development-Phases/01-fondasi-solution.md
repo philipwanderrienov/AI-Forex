@@ -1,5 +1,13 @@
 # Fase 01 — Fondasi Solution
 
+## Status implementasi
+
+- Bootstrap dimulai pada 18 Agustus 2026 menggunakan .NET 10.
+- Struktur modular monolith, project references, Controller, Service/Interface, repository spesifik, EF Core DbContext, Worker, dan tiga project test sudah tersedia.
+- Python bridge serta EA read-only mempunyai starter heartbeat localhost; integrasi tick/candle tetap pekerjaan Fase 02.
+- Initial migration, script SQL native PostgreSQL, dan database readiness health check sudah diverifikasi terhadap PostgreSQL 18 lokal.
+- JWT dan pipeline CI masih perlu diselesaikan sebelum Fase 01 ditutup.
+
 ## Tujuan
 
 Membangun kerangka aplikasi yang dapat dikembangkan, diuji, dan dijalankan secara konsisten. Fase awal menggunakan modular monolith; pemisahan service dilakukan kemudian jika terbukti perlu.
@@ -46,7 +54,7 @@ mt5-exporter/
 
 ### 3. Siapkan persistence
 
-- Jalankan PostgreSQL lokal melalui container.
+- Jalankan PostgreSQL native pada mesin lokal/Lubuntu dan kelola schema melalui script SQL versioned yang sinkron dengan EF migration.
 - Konfigurasikan EF Core, migration, naming convention, dan UTC handling.
 - Buat repository hanya pada aggregate/query yang membutuhkannya; hindari generic repository tanpa tujuan.
 - Siapkan seeding untuk data referensi, bukan data pasar palsu di produksi.
@@ -62,10 +70,10 @@ mt5-exporter/
 ### 5. Quality gate
 
 - Unit test untuk value objects dan invariants.
-- Integration test menggunakan database nyata/container.
+- Integration test menggunakan database PostgreSQL nyata yang terisolasi.
 - Script atau pipeline untuk restore, build, test, dan migration check.
 - Dokumentasikan cara menjalankan proyek dari mesin baru.
-- Dokumentasikan installer MT5 macOS, konfigurasi allowed URL untuk EA exporter, Python bridge, serta batas bahwa exporter/bridge tidak boleh mengirim order.
+- Dokumentasikan instalasi MT5/Wine pada Lubuntu, konfigurasi allowed URL localhost untuk EA exporter, Python bridge native Linux, serta batas bahwa exporter/bridge tidak boleh mengirim order.
 
 ## Deliverables
 

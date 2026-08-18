@@ -2,7 +2,7 @@
 
 ## Tujuan
 
-Panduan ini dirancang untuk pemilik proyek yang belum mengenal Python. Targetnya bukan menjadi ahli Python sebelum mulai, melainkan memahami bridge native macOS yang menerima market data dari EA MQL5 secara aman dan read-only.
+Panduan ini dirancang untuk pemilik proyek yang belum mengenal Python. Targetnya bukan menjadi ahli Python sebelum mulai, melainkan memahami bridge native Linux pada Lubuntu yang menerima market data dari EA MQL5 secara aman dan read-only. Source tetap dapat ditulis dan diuji di macOS sebelum dijalankan pada Lubuntu.
 
 Backend bisnis tetap menggunakan .NET. Python menerima HTTP/JSON dari EA, melakukan validasi, local spool, retry, dan meneruskan data ke backend. Desain ini menghindari package `MetaTrader5` khusus Windows dan kebutuhan VM berbayar.
 
@@ -18,9 +18,9 @@ Backend bisnis tetap menggunakan .NET. Python menerima HTTP/JSON dari EA, melaku
 
 Pelajari dan siapkan:
 
-- Terminal MetaTrader 5 menggunakan installer resmi macOS.
+- Terminal MetaTrader 5 berjalan melalui Wine pada Lubuntu mengikuti panduan resmi Linux.
 - Akun demo broker telah login dan lima instrumen MVP terlihat di Market Watch.
-- Python versi yang dikunci proyek, editor, Terminal macOS, dan Git.
+- Python versi yang dikunci proyek, editor dan Git pada macOS; runtime Python native Linux pada Lubuntu.
 - Virtual environment agar library proyek tidak bercampur dengan instalasi Python sistem.
 
 Hasil belajar: memahami perbedaan terminal MT5, broker, Python interpreter, package, script, dan backend .NET.
@@ -140,7 +140,8 @@ Pengguna tidak harus menguasai machine learning, async tingkat lanjut, framework
 
 - [Tutorial resmi Python](https://docs.python.org/3/tutorial/)
 - [Virtual environments](https://docs.python.org/3/tutorial/venv.html)
-- [Instalasi resmi MetaTrader 5 pada macOS](https://www.metatrader5.com/en/terminal/help/start_advanced/install_mac)
+- [Instalasi resmi MetaTrader 5 pada Linux](https://www.metatrader5.com/en/terminal/help/start_advanced/install_linux)
+- [Checklist kesiapan runtime Lubuntu](00-lubuntu-mt5-readiness.md)
 - [MQL5 `WebRequest`](https://www.mql5.com/en/docs/network/webrequest)
 
 Dokumentasi resmi digunakan sebagai sumber utama; kode implementasi proyek akan dibuat bertahap pada fase 01–02.

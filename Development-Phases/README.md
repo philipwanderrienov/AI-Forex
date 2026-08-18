@@ -7,7 +7,7 @@ Dokumen ini menerjemahkan rancangan pada folder `Notes` menjadi fase pengembanga
 - Mulai sebagai **modular monolith** agar domain mudah diuji dan deployment tetap sederhana.
 - Sumber market data real-time MVP adalah terminal **MetaTrader 5** yang terhubung ke broker pengguna.
 - Development memakai kebijakan **free-first**: pilih software open-source/free-tier dan hindari lisensi atau layanan berbayar selama kebutuhan MVP masih dapat dipenuhi secara aman.
-- Pada macOS, EA MQL5 read-only mengekspor data dari MT5 melalui HTTP ke Python Data Bridge native; API, domain, scoring, database, dan dashboard tetap menggunakan stack utama .NET/Angular.
+- Coding dilakukan pada macOS. Seluruh runtime MVP memakai laptop fisik Lubuntu 24.04.4 LTS terpisah: MT5/Wine, EA read-only, Python bridge, backend .NET, database/cache, dan Angular.
 - Layanan gratis tidak boleh dianggap mempunyai SLA. Semua integrasi eksternal dibungkus adapter agar dapat dipindahkan bila kuota atau ketentuannya berubah.
 - Semua waktu disimpan dalam UTC dan semua instrumen memakai simbol canonical, misalnya `EURUSD` dan `XAUUSD`.
 - Perhitungan teknikal, scoring, dan risiko harus deterministik serta dapat diuji tanpa AI.
@@ -23,6 +23,7 @@ Dokumen ini menerjemahkan rancangan pada folder `Notes` menjadi fase pengembanga
 | [00A](00-data-dictionary.md) | Data dictionary dan kontrak JSON | Field canonical, enum, invariants, payload antarkomponen, dan contract testing |
 | [00B](00-scoring-rules-v1.md) | Tabel aturan scoring v1 | Kondisi indikator, skor numerik, konflik timeframe, confidence, dan fixture |
 | [00C](00-risk-rules-v1.md) | Tabel aturan Risk Engine v1 | Stop-loss, target, sizing MT5, margin, exposure, circuit breaker, dan fixture |
+| [00D](00-lubuntu-mt5-readiness.md) | Kesiapan MT5 pada Lubuntu | Instalasi aman, topologi runtime, spike, soak test, dan operasi collector |
 | [01](01-fondasi-solution.md) | Fondasi solution | Solution .NET, modul, testing, database, dan standar proyek |
 | [02](02-market-data-pipeline.md) | MT5 market data pipeline | Tick/candle broker tervalidasi dan tersimpan melalui Python bridge |
 | [03](03-technical-analysis.md) | Technical analysis | Indikator, market structure, dan technical score |
@@ -68,7 +69,7 @@ Sebuah pekerjaan dianggap selesai jika:
 - Auto-execution order; roadmap awal hanya decision-support.
 - Machine learning prediktif sebelum baseline rule-based mempunyai data evaluasi yang cukup.
 - Pengiriman, modifikasi, atau penutupan order melalui Python/MQL5; bridge MVP hanya boleh membaca market data.
-- Windows VM/VPS berbayar sebelum hasil burn-in membuktikan bahwa macOS tidak cukup stabil untuk kebutuhan MVP.
+- Windows VM/VPS berbayar; hanya dipertimbangkan jika soak test membuktikan MT5/Wine pada Lubuntu tidak memenuhi target stabilitas.
 
 ## Jalur belajar Python
 
@@ -82,12 +83,12 @@ Baseline development tidak memerlukan pembelian software atau server:
 |---|---|
 | Editor dan source control | VS Code, Git |
 | Backend | .NET SDK/ASP.NET Core |
-| MT5 data export | Terminal MT5 macOS + EA MQL5 read-only |
-| Data bridge dan pembelajaran | Python native macOS |
+| MT5 data export | Terminal MT5/Wine pada Lubuntu + EA MQL5 read-only |
+| Data bridge dan pembelajaran | Python native Linux; coding dapat dilakukan dari macOS |
 | Frontend | Angular |
 | Database/cache | PostgreSQL dan Redis/Valkey lokal |
 | API documentation/testing | OpenAPI dan tool open-source |
-| Hosting percobaan | Lokal terlebih dahulu; free-tier Linux hanya setelah diperlukan |
+| Hosting percobaan | Lubuntu lokal terlebih dahulu; layanan free-tier hanya setelah diperlukan |
 | Economic calendar | Free API yang lolos spike dan syarat lisensinya |
 | AI/LLM | OpenAI API berbayar milik pengguna; penggunaannya dibatasi, diaudit, dan tidak menjadi dependency Technical MVP |
 

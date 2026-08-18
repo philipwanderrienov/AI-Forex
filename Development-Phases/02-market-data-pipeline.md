@@ -7,13 +7,13 @@ Mengambil market data real-time dari terminal MetaTrader 5 yang terhubung ke bro
 ## Batas arsitektur
 
 ```text
-Broker → Terminal MetaTrader 5/macOS → EA MQL5 read-only
-       → HTTP localhost → Python Data Bridge native macOS
+Broker → Terminal MetaTrader 5/Wine pada Lubuntu → EA MQL5 read-only
+       → HTTP 127.0.0.1 → Python Data Bridge native Linux
        → ASP.NET Core ingestion endpoint → PostgreSQL/Redis
        → Analysis Engine → Dashboard/Notification
 ```
 
-- Terminal MT5 memakai installer resmi macOS; tidak ada dependency wajib pada Windows VM/VPS.
+- Target collector memakai Lubuntu 24.04.4 LTS; MT5 berjalan melalui Wine sesuai panduan resmi MetaTrader. Windows VM/VPS tidak diperlukan.
 - EA MQL5 dan Python bridge membentuk **read-only market-data collector**.
 - Dilarang memanggil `OrderSend`, mengubah order, atau menutup posisi.
 - Backend .NET adalah pemilik validasi canonical, persistence, scoring, dan aturan bisnis.
@@ -31,7 +31,7 @@ Broker → Terminal MetaTrader 5/macOS → EA MQL5 read-only
 
 ### 2. EA MQL5 exporter dan discovery broker
 
-- Install MT5 menggunakan installer macOS resmi dan login ke akun demo broker.
+- Siapkan Lubuntu dan install MT5 melalui Wine mengikuti [checklist kesiapan runtime](00-lubuntu-mt5-readiness.md), lalu login ke akun demo broker.
 - Buat EA `ForexIntelligenceDataExporter.mq5` tanpa fungsi trading.
 - Catat versi terminal, broker/server, timezone semantics, dan status koneksi yang tidak sensitif.
 - Discover nama simbol broker menggunakan fungsi simbol MQL5; jangan menganggap semua broker memakai `EURUSD` tanpa suffix/prefix.
@@ -94,7 +94,7 @@ Broker → Terminal MetaTrader 5/macOS → EA MQL5 read-only
 - Poll latest tick sesuai target freshness tanpa busy loop.
 - Periksa final candle segera setelah boundary M15/H1/H4 dengan grace period yang ditetapkan.
 - Hindari overlap job dan buat pemrosesan idempotent.
-- Sinkronkan waktu macOS dengan time service dan ukur clock drift.
+- Sinkronkan waktu Lubuntu dengan NTP dan ukur clock drift.
 - Hentikan publikasi signal baru ketika terminal/bridge tidak sehat, tetapi pertahankan dashboard status dan histori.
 
 ### 9. Observability
@@ -107,7 +107,7 @@ Broker → Terminal MetaTrader 5/macOS → EA MQL5 read-only
 
 ## Deliverables
 
-- EA MQL5 exporter read-only dan Python Data Bridge native macOS yang kecil, terdokumentasi, dan dapat dijalankan dari satu perintah.
+- EA MQL5 exporter read-only pada MT5/Wine dan Python Data Bridge native Linux yang kecil, terdokumentasi, dan dapat dijalankan dari satu perintah.
 - Mapping simbol nyata dari broker pengguna ke lima instrumen canonical.
 - Historical backfill dan ingestion real-time untuk `M15`, `H1`, dan `H4`.
 - Endpoint ingestion .NET, persistence, checkpoint, serta dashboard health.
@@ -117,12 +117,12 @@ Broker → Terminal MetaTrader 5/macOS → EA MQL5 read-only
 ## Pengujian
 
 - Unit test normalisasi payload tanpa terminal MT5.
-- Adapter test terhadap EA pada terminal MT5 demo macOS yang berjalan.
+- Adapter test terhadap EA pada terminal MT5 demo/Wine di Lubuntu yang berjalan.
 - Bandingkan tick, candle, spread, dan timestamp sampel dengan chart broker pada terminal.
 - Bandingkan balance, equity, floating P/L, margin, dan account currency dengan nilai terminal tanpa mengekspos identitas akun.
 - Uji suffix/prefix simbol, perbedaan digits, market closed, no tick, reconnect, backend down, replay spool, duplicate, dan gap.
 - Pastikan source scan atau policy test gagal jika exporter mengandung `OrderSend` atau fungsi perubahan posisi/order.
-- Soak test ingestion lintas sesi dan validasi khusus notifikasi pada window `08:00–12:59 Europe/London`.
+- Soak test minimum lima hari trading pada Lubuntu, termasuk restart/reconnect dan window `08:00–12:59 Europe/London`.
 
 ## Kriteria selesai
 
@@ -135,7 +135,7 @@ Broker → Terminal MetaTrader 5/macOS → EA MQL5 read-only
 
 ## Referensi resmi
 
-- [Instalasi MetaTrader 5 pada macOS](https://www.metatrader5.com/en/terminal/help/start_advanced/install_mac)
+- [Instalasi MetaTrader 5 pada Linux](https://www.metatrader5.com/en/terminal/help/start_advanced/install_linux)
 - [MQL5 `WebRequest`](https://www.mql5.com/en/docs/network/webrequest)
 - [MQL5 `CopyRates`](https://www.mql5.com/en/docs/series/copyrates)
 - [MQL5 `CopyTicksRange`](https://www.mql5.com/en/docs/series/copyticksrange)

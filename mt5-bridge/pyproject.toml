@@ -1,0 +1,12 @@
+[build-system]
+requires = ["setuptools>=80"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "forex-intelligence-mt5-bridge"
+version = "0.1.0"
+description = "Read-only localhost receiver for the Forex Intelligence MT5 exporter"
+requires-python = ">=3.12"
+
+[tool.setuptools.packages.find]
+where = ["src"]

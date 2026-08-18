@@ -43,7 +43,7 @@ Menjadikan aplikasi aman, teramati, resilien, dan dapat dipulihkan. Fase ini jug
 - Environment development, staging, dan production yang terpisah.
 - Strategi database migration backward-compatible dan rollback aplikasi.
 - Backup PostgreSQL, restore drill, retention, dan disaster-recovery runbook.
-- Sediakan runbook restart terminal MT5 macOS, EA exporter, dan Python bridge; containerisasi bridge tidak diwajibkan karena terminal MT5 adalah dependency desktop lokal.
+- Sediakan runbook desktop-session/autostart, restart terminal MT5/Wine pada Lubuntu, EA exporter, dan Python bridge; containerisasi collector tidak diwajibkan karena terminal MT5 adalah dependency GUI/Wine lokal.
 
 ### 6. Release dan operasi
 
