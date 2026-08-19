@@ -1,5 +1,16 @@
 # Fase 02 — MetaTrader 5 Market Data Pipeline
 
+## Status implementasi
+
+- Receiver Python localhost menerima heartbeat starter dan batch candle `mt5-envelope.v1`.
+- Validasi contract-level tersedia untuk field wajib, versi schema, ULID batch, batas record,
+  UTC, decimal string, enum canonical, konsistensi alias broker, checksum SHA-256, serta
+  invariants OHLC.
+- Batch valid disimpan atomik pada durable FIFO spool lokal yang berbatas dan tidak menghapus
+  data lama ketika penuh.
+- EA masih hanya mengirim heartbeat. Publisher backend, credential bridge, retry/backoff,
+  checkpoint, tick/account telemetry, dan data MT5 nyata belum diimplementasikan.
+
 ## Tujuan
 
 Mengambil market data real-time dari terminal MetaTrader 5 yang terhubung ke broker pengguna, lalu menormalisasi, memvalidasi, dan menyimpannya sebagai sumber analisis. Dengan demikian harga, spread, simbol, dan histori lebih dekat dengan kondisi eksekusi manual pengguna di broker yang sama.

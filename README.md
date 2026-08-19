@@ -34,6 +34,12 @@ dotnet build ForexIntelligence.sln --no-restore
 dotnet test ForexIntelligence.sln --no-build --no-restore
 ```
 
+GitHub Actions menjalankan quality gate yang sama pada Linux, memeriksa bahwa model EF Core
+tidak tertinggal dari migration, dan menjalankan integration test persistence terhadap
+PostgreSQL 18 yang terisolasi. Test PostgreSQL lokal dapat diaktifkan dengan environment
+variable `FOREX_TEST_POSTGRESQL`; tanpa variable tersebut default test suite tidak memerlukan
+database hidup.
+
 Menjalankan API:
 
 ```bash

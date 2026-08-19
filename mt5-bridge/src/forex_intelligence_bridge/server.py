@@ -4,9 +4,16 @@ from __future__ import annotations
 
 import json
 import os
+from pathlib import Path
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from typing import Any
+
+from forex_intelligence_bridge.contracts import (
+    ContractValidationError,
+    validate_candle_envelope,
+)
+from forex_intelligence_bridge.spool import EnvelopeSpool, SpoolFullError
 
 MAX_BODY_BYTES = 64 * 1024
 
@@ -15,6 +22,7 @@ class BridgeRequestHandler(BaseHTTPRequestHandler):
     """Accept health checks and bounded MT5 heartbeat payloads."""
 
     server_version = "ForexIntelligenceBridge/0.1"
+    spool: EnvelopeSpool | None = None
 
     def do_GET(self) -> None:  # noqa: N802 - required by BaseHTTPRequestHandler
         if self.path != "/health":
@@ -24,6 +32,10 @@ class BridgeRequestHandler(BaseHTTPRequestHandler):
         self._send_json(HTTPStatus.OK, {"status": "healthy"})
 
     def do_POST(self) -> None:  # noqa: N802 - required by BaseHTTPRequestHandler
+        if self.path == "/v1/mt5/envelopes":
+            self._receive_envelope()
+            return
+
         if self.path != "/v1/mt5/heartbeat":
             self._send_json(HTTPStatus.NOT_FOUND, {"error": "not_found"})
             return
@@ -44,6 +56,43 @@ class BridgeRequestHandler(BaseHTTPRequestHandler):
             return
 
         self._send_json(HTTPStatus.ACCEPTED, {"status": "accepted"})
+
+    def _receive_envelope(self) -> None:
+        content_length = self._content_length()
+        if content_length is None:
+            return
+
+        try:
+            payload = json.loads(self.rfile.read(content_length))
+        except (json.JSONDecodeError, UnicodeDecodeError):
+            self._send_json(HTTPStatus.BAD_REQUEST, {"error": "invalid_json"})
+            return
+
+        try:
+            envelope = validate_candle_envelope(payload)
+        except ContractValidationError as error:
+            self._send_json(HTTPStatus.BAD_REQUEST, {"error": error.code})
+            return
+
+        if self.spool is None:
+            self._send_json(HTTPStatus.SERVICE_UNAVAILABLE, {"error": "spool_unavailable"})
+            return
+        try:
+            self.spool.enqueue(envelope)
+        except SpoolFullError:
+            self._send_json(HTTPStatus.INSUFFICIENT_STORAGE, {"error": "spool_full"})
+            return
+        except ValueError:
+            self._send_json(
+                HTTPStatus.ACCEPTED,
+                {"status": "duplicate", "batchId": envelope["batchId"]},
+            )
+            return
+
+        self._send_json(
+            HTTPStatus.ACCEPTED,
+            {"status": "accepted", "batchId": envelope["batchId"]},
+        )
 
     def log_message(self, format: str, *args: Any) -> None:
         """Use structured logging later; avoid default request data logging now."""
@@ -75,10 +124,13 @@ def run() -> None:
 
     host = os.environ.get("MT5_BRIDGE_HOST", "127.0.0.1")
     port = int(os.environ.get("MT5_BRIDGE_PORT", "8001"))
+    spool_directory = Path(os.environ.get("MT5_BRIDGE_SPOOL_PATH", "spool"))
+    spool_max_items = int(os.environ.get("MT5_BRIDGE_SPOOL_MAX_ITEMS", "10000"))
 
     if host not in {"127.0.0.1", "localhost"}:
         raise ValueError("Starter bridge hanya boleh bind ke localhost.")
 
+    BridgeRequestHandler.spool = EnvelopeSpool(spool_directory, spool_max_items)
     server = ThreadingHTTPServer((host, port), BridgeRequestHandler)
     print(f"MT5 bridge listening on http://{host}:{port}")
     server.serve_forever()

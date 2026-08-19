@@ -1,0 +1,71 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  quality-gate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    services:
+      postgres:
+        image: postgres:18
+        env:
+          POSTGRES_DB: forex_intelligence_test
+          POSTGRES_USER: forex_test
+          POSTGRES_PASSWORD: forex_test_password
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U forex_test -d forex_intelligence_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      FOREX_TEST_POSTGRESQL: Host=localhost;Port=5432;Database=forex_intelligence_test;Username=forex_test;Password=forex_test_password
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Restore .NET tools and dependencies
+        run: |
+          dotnet tool restore
+          dotnet restore ForexIntelligence.sln
+
+      - name: Verify formatting
+        run: dotnet format ForexIntelligence.sln --verify-no-changes --no-restore
+
+      - name: Build
+        run: dotnet build ForexIntelligence.sln --configuration Release --no-restore
+
+      - name: Verify EF Core model and migrations are synchronized
+        run: >-
+          dotnet ef migrations has-pending-model-changes
+          --project src/ForexIntelligence.Infrastructure
+          --startup-project src/ForexIntelligence.Api
+          --configuration Release
+          --no-build
+
+      - name: Run .NET tests
+        run: dotnet test ForexIntelligence.sln --configuration Release --no-build --no-restore
+
+      - name: Run Python bridge tests
+        run: PYTHONPATH=mt5-bridge/src python3 -m unittest discover -s mt5-bridge/tests -v
