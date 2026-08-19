@@ -6,6 +6,8 @@ This repository is a modular monolith. `src/ForexIntelligence.Api` owns controll
 
 Dependencies point inward: API and Worker use Application/Infrastructure, Infrastructure implements Application ports, Application uses Domain, and Domain references no other project. Keep controllers thin. Prefer a specific repository such as `ICandleRepository` over `IRepository<T>`.
 
+All repository SQL scripts must be directly executable in DBeaver. Do not add terminal-specific commands, terminal-only setup paths, or a separate DBeaver-specific subfolder; keep numbered SQL scripts directly under `database/`.
+
 ## Build, Test, and Development Commands
 
 - `dotnet restore ForexIntelligence.sln` — restore pinned project dependencies.
@@ -15,7 +17,7 @@ Dependencies point inward: API and Worker use Application/Infrastructure, Infras
 - `dotnet format ForexIntelligence.sln --verify-no-changes --no-restore` — verify formatting.
 - `dotnet run --project src/ForexIntelligence.Api` — start the development API.
 - `dotnet tool restore` — restore the repository-local EF Core CLI.
-- `psql -h localhost -U forex_app -d forex_intelligence -f database/001-initial-schema.sql` — apply the versioned schema to native PostgreSQL.
+- Open the numbered scripts under `database/` in DBeaver and execute them in order — apply or verify the native PostgreSQL schema.
 - `PYTHONPATH=mt5-bridge/src python3 -m unittest discover -s mt5-bridge/tests` — run bridge tests.
 
 ## Coding Style & Naming Conventions

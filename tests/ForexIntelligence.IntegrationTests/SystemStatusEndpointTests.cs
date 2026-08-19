@@ -1,22 +1,21 @@
 using System.Net;
-using Microsoft.AspNetCore.Mvc.Testing;
 
 namespace ForexIntelligence.IntegrationTests;
 
-public sealed class SystemStatusEndpointTests : IClassFixture<WebApplicationFactory<Program>>
+public sealed class SystemStatusEndpointTests : IClassFixture<TestWebApplicationFactory>
 {
     private readonly HttpClient _client;
 
-    public SystemStatusEndpointTests(WebApplicationFactory<Program> factory)
+    public SystemStatusEndpointTests(TestWebApplicationFactory factory)
     {
         _client = factory.CreateClient();
     }
 
     [Fact]
-    public async Task GetSystemStatus_ReturnsOk()
+    public async Task GetSystemStatus_WithoutToken_ReturnsUnauthorized()
     {
         var response = await _client.GetAsync("/api/system-status");
 
-        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
     }
 }

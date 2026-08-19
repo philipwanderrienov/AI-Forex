@@ -16,7 +16,7 @@ public sealed class MarketDataEndpointTests
     public async Task StoreCandle_UsesApplicationServiceAndRepository()
     {
         var repository = new RecordingCandleRepository();
-        await using var factory = new WebApplicationFactory<Program>()
+        await using var factory = new TestWebApplicationFactory()
             .WithWebHostBuilder(builder =>
                 builder.ConfigureTestServices(services =>
                 {

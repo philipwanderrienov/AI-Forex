@@ -1,29 +1,32 @@
-\set ON_ERROR_STOP on
+-- DBeaver: jalankan sebagai administrator PostgreSQL pada database "postgres".
+-- Ganti CHANGE_ME_STRONG_PASSWORD sebelum menjalankan blok role.
+-- Jangan simpan password nyata ke Git.
 
--- Jalankan melalui psql sebagai administrator PostgreSQL.
--- Contoh:
--- psql -U postgres -d postgres \
---   -v forex_db_password='ganti-dengan-password-kuat' \
---   -f database/000-create-database.sql
+DO $ADMIN$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1
+        FROM pg_roles
+        WHERE rolname = 'forex_app') THEN
+        CREATE ROLE forex_app
+            LOGIN
+            NOSUPERUSER
+            NOCREATEDB
+            NOCREATEROLE
+            NOINHERIT
+            NOREPLICATION
+            PASSWORD 'CHANGE_ME_STRONG_PASSWORD';
+    ELSE
+        RAISE NOTICE 'Role forex_app sudah tersedia; password tidak diubah.';
+    END IF;
+END $ADMIN$;
 
-\if :{?forex_db_password}
-\else
-  \echo 'Variable forex_db_password wajib diberikan.'
-  \quit
-\endif
+-- PostgreSQL tidak mendukung CREATE DATABASE IF NOT EXISTS.
+-- Jalankan statement berikut hanya jika database forex_intelligence belum tersedia.
+-- Pilih statement lalu jalankan Execute SQL Statement (Ctrl+Enter).
 
-SELECT format(
-    'CREATE ROLE forex_app LOGIN PASSWORD %L',
-    :'forex_db_password')
-WHERE NOT EXISTS (
-    SELECT 1
-    FROM pg_roles
-    WHERE rolname = 'forex_app')
-\gexec
-
-SELECT 'CREATE DATABASE forex_intelligence OWNER forex_app'
-WHERE NOT EXISTS (
-    SELECT 1
-    FROM pg_database
-    WHERE datname = 'forex_intelligence')
-\gexec
+CREATE DATABASE forex_intelligence
+    WITH
+    OWNER = forex_app
+    ENCODING = 'UTF8'
+    TEMPLATE = template0;

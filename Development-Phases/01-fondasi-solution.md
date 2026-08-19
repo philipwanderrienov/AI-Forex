@@ -6,7 +6,8 @@
 - Struktur modular monolith, project references, Controller, Service/Interface, repository spesifik, EF Core DbContext, Worker, dan tiga project test sudah tersedia.
 - Python bridge serta EA read-only mempunyai starter heartbeat localhost; integrasi tick/candle tetap pekerjaan Fase 02.
 - Initial migration, script SQL native PostgreSQL, dan database readiness health check sudah diverifikasi terhadap PostgreSQL 18 lokal.
-- JWT dan pipeline CI masih perlu diselesaikan sebelum Fase 01 ditutup.
+- Baseline JWT satu pengguna tersedia: access token 15 menit, role `USER`/`ADMIN`, login rate limit, password bootstrap PBKDF2-SHA256, serta refresh-token rotation/revocation persisten dengan reuse detection berbasis token family.
+- Pipeline CI masih perlu diselesaikan sebelum Fase 01 ditutup.
 
 ## Tujuan
 

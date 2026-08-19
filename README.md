@@ -49,23 +49,39 @@ GET /health/live
 GET /health/ready
 GET /openapi/v1.json   (development)
 POST /api/market-data/candles
+POST /api/auth/login
+POST /api/auth/refresh
+POST /api/auth/revoke
+```
+
+JWT pengguna memakai access token maksimal 15 menit dan refresh token maksimal 7 hari.
+Konfigurasi sensitif wajib diberikan melalui environment atau secret store:
+
+```text
+Jwt__SigningKey=<minimal-32-byte-random-secret>
+BootstrapUser__Username=<username>
+BootstrapUser__PasswordHash=<pbkdf2-sha256-hash>
+BootstrapUser__Role=ADMIN
+```
+
+Jangan masukkan nilai konfigurasi tersebut ke `appsettings*.json` atau source control.
+Password bootstrap disimpan sebagai PBKDF2-SHA256 hash; API tidak menerima konfigurasi
+password plaintext. Refresh token mentah hanya dikirim ke client, sedangkan PostgreSQL
+menyimpan SHA-256 hash beserta token family untuk rotation, revocation, dan reuse detection.
+
+Buat hash password secara interaktif tanpa menampilkan password di terminal:
+
+```bash
+dotnet run --project src/ForexIntelligence.Api -- --hash-password
 ```
 
 Connection string production/development yang berisi password harus diberikan melalui environment atau secret store, misalnya `ConnectionStrings__PostgreSql`; jangan commit password.
 
 ## PostgreSQL lokal
 
-```bash
-psql -U postgres -d postgres \
-  -v forex_db_password='password-lokal-yang-kuat' \
-  -f database/000-create-database.sql
-
-PGPASSWORD='password-lokal-yang-kuat' \
-psql -h localhost -U forex_app -d forex_intelligence \
-  -f database/001-initial-schema.sql
-```
-
-Petunjuk lengkap tersedia di [database/README.md](database/README.md). Proyek tidak memakai Docker untuk database.
+Buka script bernomor pada folder `database/` di DBeaver dan jalankan sesuai urutan yang
+dijelaskan pada [panduan database](database/README.md). Proyek tidak memakai Docker untuk
+database.
 
 `/health/live` hanya membuktikan proses API hidup. `/health/ready` juga memeriksa PostgreSQL.
 

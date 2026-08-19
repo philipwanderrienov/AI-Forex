@@ -1,9 +1,11 @@
 using ForexIntelligence.Api.Models.Responses.System;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace ForexIntelligence.Api.Controllers;
 
 [ApiController]
+[Authorize(Policy = "USER")]
 [Route("api/system-status")]
 public sealed class SystemStatusController(TimeProvider timeProvider) : ControllerBase
 {

@@ -1,29 +1,29 @@
-# Database PostgreSQL
+# Database PostgreSQL melalui DBeaver
 
-Database dijalankan sebagai instalasi PostgreSQL native; proyek ini tidak memakai Docker.
+Database memakai PostgreSQL native. Seluruh script SQL pada folder ini dibuat untuk langsung
+dijalankan melalui DBeaver tanpa perintah khusus terminal.
 
-## Instalasi awal
+## Instalasi baru
 
-Jalankan script pertama sebagai administrator PostgreSQL. Ganti password contoh dan jangan menyimpannya di repository atau shell history bersama:
+1. Buka koneksi administrator DBeaver ke database bawaan `postgres`.
+2. Buka `000-create-database.sql` dan ganti `CHANGE_ME_STRONG_PASSWORD`.
+3. Jalankan blok pembuatan role. Jalankan `CREATE DATABASE` hanya jika database
+   `forex_intelligence` belum tersedia.
+4. Buat koneksi DBeaver ke `forex_intelligence` sebagai `forex_app`.
+5. Jalankan seluruh `001-complete-schema.sql` dengan **Execute SQL Script** (`Alt+X`).
+6. Jalankan `999-verify-schema.sql`. Verifikasi melempar exception jika schema belum lengkap.
 
-```bash
-psql -U postgres -d postgres \
-  -v forex_db_password='password-lokal-yang-kuat' \
-  -f database/000-create-database.sql
-```
+Jangan simpan password nyata ke file SQL atau Git. Setelah setup, kembalikan placeholder
+password sebelum menyimpan file.
 
-Kemudian buat schema sebagai user aplikasi:
+## Schema terbaru
 
-```bash
-PGPASSWORD='password-lokal-yang-kuat' \
-psql -h localhost -U forex_app -d forex_intelligence \
-  -f database/001-initial-schema.sql
-```
+- `__EFMigrationsHistory`: histori migration EF Core;
+- `candles`: candle market-data;
+- `refresh_tokens`: hash refresh token, family, expiry, rotation, dan revocation;
+- unique index candle berdasarkan instrument, timeframe, dan open time;
+- unique index refresh-token hash;
+- index refresh-token family dan expiry.
 
-Konfigurasikan aplikasi melalui environment:
-
-```bash
-export ConnectionStrings__PostgreSql='Host=localhost;Port=5432;Database=forex_intelligence;Username=forex_app;Password=password-lokal-yang-kuat'
-```
-
-Script `001` idempotent dan mencatat versi EF migration yang sesuai. Setiap perubahan schema berikutnya mendapat nomor script baru; script lama tidak diedit setelah dipakai.
+Tidak ada seed user atau password di database. Connection string, username/password hash
+bootstrap, dan JWT signing key tetap disimpan melalui environment atau .NET user-secrets.
