@@ -2,7 +2,12 @@
 
 ## Status implementasi
 
-- Receiver Python localhost menerima heartbeat starter dan batch candle `mt5-envelope.v1`.
+- Receiver Python localhost menerima heartbeat starter tervalidasi dan batch candle
+  `mt5-envelope.v1`. Heartbeat memeriksa versi schema, instance ID terbatas, dan timestamp UTC.
+- Bridge menyimpan heartbeat terakhir di memory dan melaporkan freshness terminal melalui
+  `/health` sebagai `UNKNOWN`, `HEALTHY`, `WARNING`, atau `STALE` sesuai ambang canonical.
+- Health bridge melaporkan depth, kapasitas item/byte, persentase pemakaian, ruang disk bebas,
+  dan status ketersediaan durable spool untuk ditampilkan sebagai volume bar pada dashboard.
 - Validasi contract-level tersedia untuk field wajib, versi schema, ULID batch, batas record,
   UTC, decimal string, enum canonical, konsistensi alias broker, checksum SHA-256, serta
   invariants OHLC.

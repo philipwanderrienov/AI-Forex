@@ -1,4 +1,9 @@
-"""Validation for versioned MT5 market-data envelopes."""
+"""Kontrak dan validasi envelope data pasar yang dikirim dari MT5.
+
+Modul ini memastikan struktur batch candle dari MT5 sesuai kontrak kanonis
+sebelum data diproses oleh komponen lain. Validasi sengaja tidak mengubah
+payload agar nilai yang diperiksa sama persis dengan nilai yang dikirim.
+"""
 
 from __future__ import annotations
 
@@ -10,6 +15,7 @@ from decimal import Decimal, InvalidOperation
 from typing import Any
 
 MAX_RECORDS_PER_BATCH = 100
+# Pola dan daftar nilai yang diizinkan oleh kontrak versi saat ini.
 _ULID_PATTERN = re.compile(r"^[0-9A-HJKMNP-TV-Z]{26}$")
 _CHECKSUM_PATTERN = re.compile(r"^sha256:[0-9a-f]{64}$")
 _INSTRUMENTS = {"EURUSD", "GBPUSD", "EURGBP", "EURCHF", "XAUUSD"}
@@ -23,15 +29,49 @@ _CANDLE_STATUSES = {"PARTIAL", "FINAL"}
 
 
 class ContractValidationError(ValueError):
-    """Raised when an envelope violates the canonical bridge contract."""
+    """Kesalahan yang menandakan payload melanggar kontrak bridge.
+
+    Atribut ``code`` berisi kode stabil yang dapat dipakai pemanggil untuk
+    logging, pemetaan respons, atau pengujian tanpa bergantung pada pesan bebas.
+    """
 
     def __init__(self, code: str) -> None:
+        """Buat kesalahan validasi dengan kode penyebab yang spesifik."""
+
         super().__init__(code)
         self.code = code
 
 
+def validate_heartbeat(payload: Any) -> dict[str, Any]:
+    """Validasi heartbeat starter yang dikirim berkala oleh EA MT5.
+
+    Heartbeat membuktikan instance EA masih dapat menjangkau bridge. Versi
+    schema, identitas instance, dan timestamp UTC diperiksa, kemudian payload
+    asli dikembalikan tanpa modifikasi.
+    """
+
+    if not isinstance(payload, dict):
+        raise ContractValidationError("invalid_heartbeat")
+
+    required = {"schemaVersion", "sourceInstanceId", "sentAt"}
+    if not required.issubset(payload):
+        raise ContractValidationError("missing_heartbeat_field")
+    if payload["schemaVersion"] != "mt5-heartbeat.v1":
+        raise ContractValidationError("unsupported_heartbeat_schema_version")
+    if not _bounded_text(payload["sourceInstanceId"], 128):
+        raise ContractValidationError("invalid_source_instance_id")
+    _parse_utc_timestamp(payload["sentAt"], "invalid_sent_at")
+
+    return payload
+
+
 def validate_candle_envelope(payload: Any) -> dict[str, Any]:
-    """Validate an mt5-envelope.v1 CANDLES batch without changing its values."""
+    """Validasi satu batch ``CANDLES`` berformat ``mt5-envelope.v1``.
+
+    Pemeriksaan mencakup metadata envelope, jumlah dan isi record, hubungan
+    waktu candle, serta checksum. Payload asli dikembalikan tanpa modifikasi
+    ketika valid; pelanggaran pertama menghasilkan ``ContractValidationError``.
+    """
 
     if not isinstance(payload, dict):
         raise ContractValidationError("invalid_envelope")
@@ -77,7 +117,11 @@ def validate_candle_envelope(payload: Any) -> dict[str, Any]:
 
 
 def records_checksum(records: list[dict[str, Any]]) -> str:
-    """Return SHA-256 for canonical UTF-8 JSON of the records array."""
+    """Hitung checksum SHA-256 dari representasi JSON kanonis kumpulan record.
+
+    Pengurutan key dan separator yang konsisten membuat checksum deterministik:
+    data yang sama menghasilkan checksum yang sama meski urutan key input beda.
+    """
 
     canonical_json = json.dumps(
         records,
@@ -89,6 +133,14 @@ def records_checksum(records: list[dict[str, Any]]) -> str:
 
 
 def _validate_candle(record: Any, broker_server_alias: str, sent_at: datetime) -> None:
+    """Validasi satu entity candle beserta konsistensinya terhadap envelope.
+
+    Selain field wajib, fungsi ini memeriksa instrumen/timeframe yang didukung,
+    durasi interval, aturan OHLC, volume, status final, dan kualitas data.
+    ``broker_server_alias`` serta ``sent_at`` berasal dari envelope induk dan
+    dipakai untuk memastikan record tidak bertentangan dengan batch-nya.
+    """
+
     if not isinstance(record, dict):
         raise ContractValidationError("invalid_candle")
     required = {
@@ -146,10 +198,18 @@ def _validate_candle(record: Any, broker_server_alias: str, sent_at: datetime) -
 
 
 def _bounded_text(value: Any, maximum_length: int) -> bool:
+    """Periksa bahwa nilai adalah teks non-kosong dalam batas panjang kontrak."""
+
     return isinstance(value, str) and bool(value.strip()) and len(value) <= maximum_length
 
 
 def _parse_utc_timestamp(value: Any, error_code: str) -> datetime:
+    """Ubah timestamp ISO 8601 berakhiran ``Z`` menjadi ``datetime`` UTC.
+
+    ``error_code`` diteruskan ke kesalahan kontrak agar setiap field dapat
+    melaporkan penyebab yang tepat kepada pemanggil.
+    """
+
     if not isinstance(value, str) or not value.endswith("Z"):
         raise ContractValidationError(error_code)
     try:
@@ -159,6 +219,12 @@ def _parse_utc_timestamp(value: Any, error_code: str) -> datetime:
 
 
 def _positive_decimal(value: Any) -> Decimal:
+    """Ubah string harga menjadi Decimal positif dan bernilai terbatas.
+
+    String diwajibkan agar presisi nilai finansial tetap terjaga dan tidak
+    terkena pembulatan bawaan floating-point.
+    """
+
     if not isinstance(value, str):
         raise ContractValidationError("invalid_decimal")
     try:

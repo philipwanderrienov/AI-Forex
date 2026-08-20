@@ -39,6 +39,7 @@ Konfigurasi spool bersifat opsional:
 ```text
 MT5_BRIDGE_SPOOL_PATH=spool
 MT5_BRIDGE_SPOOL_MAX_ITEMS=10000
+MT5_BRIDGE_SPOOL_MAX_BYTES=268435456
 ```
 
 Saat kapasitas penuh, bridge menolak batch baru dengan HTTP `507` dan tidak menghapus batch

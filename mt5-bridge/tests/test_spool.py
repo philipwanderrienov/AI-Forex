@@ -57,6 +57,33 @@ class EnvelopeSpoolTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 spool.acknowledge(outside)
 
+    def test_status_reports_depth_capacity_and_full_state(self):
+        with tempfile.TemporaryDirectory() as directory:
+            spool = EnvelopeSpool(Path(directory), max_items=1)
+
+            empty_status = spool.status()
+            self.assertEqual("AVAILABLE", empty_status["status"])
+            self.assertEqual(0, empty_status["depth"])
+            self.assertEqual(0, empty_status["usedBytes"])
+            self.assertEqual(0.0, empty_status["utilizationPercent"])
+
+            spool.enqueue(valid_envelope())
+
+            full_status = spool.status()
+            self.assertEqual("FULL", full_status["status"])
+            self.assertEqual(1, full_status["depth"])
+            self.assertGreater(full_status["usedBytes"], 0)
+            self.assertGreater(full_status["utilizationPercent"], 0)
+
+    def test_byte_capacity_rejects_item_that_would_exceed_limit(self):
+        with tempfile.TemporaryDirectory() as directory:
+            spool = EnvelopeSpool(Path(directory), max_bytes=1)
+
+            with self.assertRaises(SpoolFullError):
+                spool.enqueue(valid_envelope())
+
+            self.assertEqual(0, spool.status()["depth"])
+
 
 if __name__ == "__main__":
     unittest.main()

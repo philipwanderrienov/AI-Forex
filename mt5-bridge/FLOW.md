@@ -123,6 +123,15 @@ Misalnya EA mengirim candle final `EURUSD H1` dengan sequence `18442`:
 | `MT5_BRIDGE_PORT` | `8001` | Port HTTP lokal |
 | `MT5_BRIDGE_SPOOL_PATH` | `spool` | Folder durable spool |
 | `MT5_BRIDGE_SPOOL_MAX_ITEMS` | `10000` | Jumlah maksimum batch antre |
+| `MT5_BRIDGE_SPOOL_MAX_BYTES` | `268435456` | Batas ukuran spool, default 256 MiB |
+
+Endpoint `GET /health` selalu melaporkan kesehatan proses bridge dan freshness heartbeat EA.
+Status terminal adalah `UNKNOWN` sebelum heartbeat pertama, `HEALTHY` sampai 10 detik,
+`WARNING` setelah 10 detik, dan `STALE` setelah 20 detik.
+Health check juga menampilkan status spool (`AVAILABLE`, `FULL`, atau `UNAVAILABLE`), jumlah
+batch yang sedang antre (`depth`), byte terpakai/maksimum, persentase pemakaian untuk volume
+bar dashboard, dan ruang kosong filesystem. Spool menolak batch baru jika batas item atau byte
+akan terlampaui.
 
 ## Yang belum tersedia
 

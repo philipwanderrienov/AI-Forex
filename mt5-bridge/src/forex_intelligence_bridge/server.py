@@ -12,8 +12,10 @@ from typing import Any
 from forex_intelligence_bridge.contracts import (
     ContractValidationError,
     validate_candle_envelope,
+    validate_heartbeat,
 )
-from forex_intelligence_bridge.spool import EnvelopeSpool, SpoolFullError
+from forex_intelligence_bridge.health import HeartbeatMonitor
+from forex_intelligence_bridge.spool import DEFAULT_MAX_BYTES, EnvelopeSpool, SpoolFullError
 
 MAX_BODY_BYTES = 64 * 1024
 
@@ -23,13 +25,25 @@ class BridgeRequestHandler(BaseHTTPRequestHandler):
 
     server_version = "ForexIntelligenceBridge/0.1"
     spool: EnvelopeSpool | None = None
+    heartbeat_monitor = HeartbeatMonitor()
 
     def do_GET(self) -> None:  # noqa: N802 - required by BaseHTTPRequestHandler
         if self.path != "/health":
             self._send_json(HTTPStatus.NOT_FOUND, {"error": "not_found"})
             return
 
-        self._send_json(HTTPStatus.OK, {"status": "healthy"})
+        self._send_json(
+            HTTPStatus.OK,
+            {
+                "status": "HEALTHY",
+                "terminal": self.heartbeat_monitor.snapshot(),
+                "spool": (
+                    self.spool.status()
+                    if self.spool is not None
+                    else {"status": "UNAVAILABLE"}
+                ),
+            },
+        )
 
     def do_POST(self) -> None:  # noqa: N802 - required by BaseHTTPRequestHandler
         if self.path == "/v1/mt5/envelopes":
@@ -50,11 +64,13 @@ class BridgeRequestHandler(BaseHTTPRequestHandler):
             self._send_json(HTTPStatus.BAD_REQUEST, {"error": "invalid_json"})
             return
 
-        required_fields = {"schemaVersion", "sourceInstanceId", "sentAt"}
-        if not isinstance(payload, dict) or not required_fields.issubset(payload):
-            self._send_json(HTTPStatus.BAD_REQUEST, {"error": "invalid_heartbeat"})
+        try:
+            heartbeat = validate_heartbeat(payload)
+        except ContractValidationError as error:
+            self._send_json(HTTPStatus.BAD_REQUEST, {"error": error.code})
             return
 
+        self.heartbeat_monitor.record(heartbeat)
         self._send_json(HTTPStatus.ACCEPTED, {"status": "accepted"})
 
     def _receive_envelope(self) -> None:
@@ -110,7 +126,7 @@ class BridgeRequestHandler(BaseHTTPRequestHandler):
 
         return content_length
 
-    def _send_json(self, status: HTTPStatus, payload: dict[str, str]) -> None:
+    def _send_json(self, status: HTTPStatus, payload: dict[str, Any]) -> None:
         body = json.dumps(payload, separators=(",", ":")).encode("utf-8")
         self.send_response(status)
         self.send_header("Content-Type", "application/json")
@@ -126,11 +142,16 @@ def run() -> None:
     port = int(os.environ.get("MT5_BRIDGE_PORT", "8001"))
     spool_directory = Path(os.environ.get("MT5_BRIDGE_SPOOL_PATH", "spool"))
     spool_max_items = int(os.environ.get("MT5_BRIDGE_SPOOL_MAX_ITEMS", "10000"))
+    spool_max_bytes = int(os.environ.get("MT5_BRIDGE_SPOOL_MAX_BYTES", str(DEFAULT_MAX_BYTES)))
 
     if host not in {"127.0.0.1", "localhost"}:
         raise ValueError("Starter bridge hanya boleh bind ke localhost.")
 
-    BridgeRequestHandler.spool = EnvelopeSpool(spool_directory, spool_max_items)
+    BridgeRequestHandler.spool = EnvelopeSpool(
+        spool_directory,
+        spool_max_items,
+        spool_max_bytes,
+    )
     server = ThreadingHTTPServer((host, port), BridgeRequestHandler)
     print(f"MT5 bridge listening on http://{host}:{port}")
     server.serve_forever()

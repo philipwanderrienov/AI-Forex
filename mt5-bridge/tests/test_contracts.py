@@ -4,6 +4,7 @@ from forex_intelligence_bridge.contracts import (
     ContractValidationError,
     records_checksum,
     validate_candle_envelope,
+    validate_heartbeat,
 )
 
 
@@ -94,6 +95,59 @@ class CandleEnvelopeTests(unittest.TestCase):
         with self.assertRaises(ContractValidationError) as context:
             validate_candle_envelope(payload)
         self.assertEqual(code, context.exception.code)
+
+
+class HeartbeatTests(unittest.TestCase):
+    def test_valid_heartbeat_is_accepted(self):
+        heartbeat = {
+            "schemaVersion": "mt5-heartbeat.v1",
+            "sourceInstanceId": "lubuntu-mt5-primary",
+            "sentAt": "2026-08-20T01:00:00Z",
+        }
+
+        self.assertIs(heartbeat, validate_heartbeat(heartbeat))
+
+    def test_wrong_schema_version_is_rejected(self):
+        heartbeat = {
+            "schemaVersion": "mt5-heartbeat.v2",
+            "sourceInstanceId": "lubuntu-mt5-primary",
+            "sentAt": "2026-08-20T01:00:00Z",
+        }
+
+        with self.assertRaises(ContractValidationError) as context:
+            validate_heartbeat(heartbeat)
+        self.assertEqual("unsupported_heartbeat_schema_version", context.exception.code)
+
+    def test_non_utc_timestamp_is_rejected(self):
+        heartbeat = {
+            "schemaVersion": "mt5-heartbeat.v1",
+            "sourceInstanceId": "lubuntu-mt5-primary",
+            "sentAt": "2026-08-20T08:00:00+07:00",
+        }
+
+        with self.assertRaises(ContractValidationError) as context:
+            validate_heartbeat(heartbeat)
+        self.assertEqual("invalid_sent_at", context.exception.code)
+
+    def test_invalid_shape_and_identity_are_rejected(self):
+        cases = [
+            ([], "invalid_heartbeat"),
+            ({"schemaVersion": "mt5-heartbeat.v1"}, "missing_heartbeat_field"),
+            (
+                {
+                    "schemaVersion": "mt5-heartbeat.v1",
+                    "sourceInstanceId": "   ",
+                    "sentAt": "2026-08-20T01:00:00Z",
+                },
+                "invalid_source_instance_id",
+            ),
+        ]
+
+        for payload, expected_code in cases:
+            with self.subTest(expected_code=expected_code):
+                with self.assertRaises(ContractValidationError) as context:
+                    validate_heartbeat(payload)
+                self.assertEqual(expected_code, context.exception.code)
 
 
 if __name__ == "__main__":
