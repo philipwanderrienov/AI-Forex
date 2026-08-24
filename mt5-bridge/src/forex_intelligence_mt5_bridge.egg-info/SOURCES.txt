@@ -1,0 +1,15 @@
+README.md
+pyproject.toml
+src/forex_intelligence_bridge/__init__.py
+src/forex_intelligence_bridge/contracts.py
+src/forex_intelligence_bridge/health.py
+src/forex_intelligence_bridge/server.py
+src/forex_intelligence_bridge/spool.py
+src/forex_intelligence_mt5_bridge.egg-info/PKG-INFO
+src/forex_intelligence_mt5_bridge.egg-info/SOURCES.txt
+src/forex_intelligence_mt5_bridge.egg-info/dependency_links.txt
+src/forex_intelligence_mt5_bridge.egg-info/top_level.txt
+tests/test_contracts.py
+tests/test_health.py
+tests/test_server.py
+tests/test_spool.py
