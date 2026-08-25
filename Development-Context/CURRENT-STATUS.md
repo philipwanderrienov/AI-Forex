@@ -17,34 +17,42 @@ Phase 02 market-data acquisition. Development is intentionally focused on the MT
 - Durable FIFO spool includes duplicate protection, item/byte capacity limits, and disk-free monitoring.
 - Unit tests exist for contracts, health, server, and spool.
 - MQL5 exporter on the GPT lineage has been upgraded from heartbeat-only to a first real `EURUSD H1` FINAL-candle export using `CopyRates`, posting to `/v1/mt5/envelopes`.
-- Development-only `mt5-bridge/tools/mt5_simulator.py` now sends the same heartbeat and `EURUSD H1` candle contracts as the real exporter using only Python standard-library dependencies.
+- Development-only `mt5-bridge/tools/mt5_simulator.py` sends the same heartbeat and `EURUSD H1` candle contracts as the real exporter using only Python standard-library dependencies.
 - Simulator supports continuous heartbeat, `--once`, duplicate-batch, invalid-OHLC, and disconnect scenarios.
 
 ## Locally verified by user
 
-On Windows development PC, the Python package was installed and the bridge successfully started with:
+The MT5 simulator happy path has now been verified successfully on the user's Mac development machine.
 
-`py -m forex_intelligence_bridge.server`
+After running the bridge and simulator, `GET /health` returned:
 
-`curl.exe http://127.0.0.1:8001/health` returned bridge `HEALTHY`, terminal `UNKNOWN`, spool `AVAILABLE`, and depth `0`. This is expected because a live MT5 terminal has not yet been connected.
+- bridge `status`: `HEALTHY`
+- terminal `status`: `HEALTHY`
+- terminal `sourceInstanceId`: `mt5-simulator-local`
+- spool `status`: `AVAILABLE`
+- spool `depth`: `1`
+- spool `usedBytes`: `692`
+
+This proves the local dummy pipeline works end-to-end for heartbeat plus one valid `EURUSD H1` FINAL candle: simulator -> HTTP bridge -> contract/checksum validation -> durable spool.
+
+The earlier Windows bridge-only verification also succeeded: before a producer was connected, `/health` correctly reported terminal `UNKNOWN`, spool `AVAILABLE`, and depth `0`.
 
 ## Next local verification
 
-With the bridge running, execute from `mt5-bridge`:
+Continue failure/recovery testing in this order:
 
-`py tools\mt5_simulator.py --once`
+1. `python3 tools/mt5_simulator.py --scenario duplicate`
+2. `python3 tools/mt5_simulator.py --scenario invalid-ohlc`
+3. `python3 tools/mt5_simulator.py --scenario disconnect --disconnect-seconds 15`
+4. Verify recovery/reconnect behavior after the disconnect scenario.
 
-Expected result: heartbeat HTTP 202, candle HTTP 202, terminal becomes `HEALTHY`, and spool depth becomes `1` (assuming an empty spool).
-
-After the happy path succeeds, verify:
-
-- `py tools\mt5_simulator.py --scenario duplicate`
-- `py tools\mt5_simulator.py --scenario invalid-ohlc`
-- `py tools\mt5_simulator.py --scenario disconnect --disconnect-seconds 15`
+Expected goals: duplicate delivery must not create duplicate durable data, invalid OHLC must be rejected by contract validation, and heartbeat loss must transition terminal health away from `HEALTHY` according to freshness thresholds.
 
 ## Not yet verified
 
-- Simulator against the user's local running bridge.
+- Duplicate simulator scenario.
+- Invalid-OHLC simulator scenario.
+- Disconnect/stale-heartbeat and recovery scenario.
 - Real MT5 -> MQL5 -> Python heartbeat.
 - Real EURUSD H1 candle -> Python validation -> spool.
 - The dedicated server laptop is still being prepared.
