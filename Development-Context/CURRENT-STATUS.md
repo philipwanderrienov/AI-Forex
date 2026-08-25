@@ -1,7 +1,7 @@
 # Current Development Status
 
 Last updated: 2026-08-25
-Owning branch for this update: `GPT`
+Owning branch for this update: `Codex`
 
 ## Current focus
 
@@ -19,6 +19,7 @@ Phase 02 market-data acquisition. Development is intentionally focused on the MT
 - MQL5 exporter on the GPT lineage has been upgraded from heartbeat-only to a first real `EURUSD H1` FINAL-candle export using `CopyRates`, posting to `/v1/mt5/envelopes`.
 - Development-only `mt5-bridge/tools/mt5_simulator.py` sends the same heartbeat and `EURUSD H1` candle contracts as the real exporter using only Python standard-library dependencies.
 - Simulator supports continuous heartbeat, `--once`, duplicate-batch, invalid-OHLC, and disconnect scenarios.
+- Simulator payload generation is covered by unit tests for heartbeat and valid H1 contracts, ULID shape, reusable duplicate batch IDs, and invalid-OHLC rejection with a valid checksum.
 
 ## Locally verified by user
 
@@ -37,22 +38,23 @@ This proves the local dummy pipeline works end-to-end for heartbeat plus one val
 
 The earlier Windows bridge-only verification also succeeded: before a producer was connected, `/health` correctly reported terminal `UNKNOWN`, spool `AVAILABLE`, and depth `0`.
 
-## Next local verification
+## Locally verified by Codex
 
-Continue failure/recovery testing in this order:
+On 2026-08-25, the simulator failure/recovery path was verified against a live local bridge using an isolated temporary spool:
 
-1. `python3 tools/mt5_simulator.py --scenario duplicate`
-2. `python3 tools/mt5_simulator.py --scenario invalid-ohlc`
-3. `python3 tools/mt5_simulator.py --scenario disconnect --disconnect-seconds 15`
-4. Verify recovery/reconnect behavior after the disconnect scenario.
+- The duplicate scenario returned `202 accepted` for the first envelope and `202 duplicate` for the second; spool depth remained 1.
+- The invalid-OHLC scenario returned `400 invalid_ohlc`; spool depth remained 1.
+- With no new heartbeat, terminal health transitioned from `HEALTHY` to `WARNING` after 10 seconds and `STALE` after 20 seconds.
+- A new valid heartbeat returned `202 accepted` and immediately restored terminal health to `HEALTHY`; spool depth remained 1.
 
-Expected goals: duplicate delivery must not create duplicate durable data, invalid OHLC must be rejected by contract validation, and heartbeat loss must transition terminal health away from `HEALTHY` according to freshness thresholds.
+The temporary bridge process was stopped and its isolated test spool was removed after verification.
+
+## Latest automated verification
+
+On 2026-08-25, `PYTHONPATH=src python3 -m unittest discover -s tests -v` completed successfully with 37 tests passing.
 
 ## Not yet verified
 
-- Duplicate simulator scenario.
-- Invalid-OHLC simulator scenario.
-- Disconnect/stale-heartbeat and recovery scenario.
 - Real MT5 -> MQL5 -> Python heartbeat.
 - Real EURUSD H1 candle -> Python validation -> spool.
 - The dedicated server laptop is still being prepared.
