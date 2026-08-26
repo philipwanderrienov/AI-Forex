@@ -6,6 +6,8 @@ import json
 import os
 import shutil
 import tempfile
+import time
+from datetime import datetime, timezone
 from pathlib import Path
 from threading import RLock
 from typing import Any
@@ -26,7 +28,7 @@ class SequenceConflictError(ValueError):
 
 
 class EnvelopeSpool:
-    """Antrean file FIFO terbatas untuk envelope yang menunggu dipublikasikan."""
+    """Bounded durable queue with quarantine for unreplayable envelopes."""
 
     def __init__(
         self,
@@ -39,10 +41,12 @@ class EnvelopeSpool:
         if max_bytes < 1:
             raise ValueError("max_bytes must be positive")
         self._directory = directory
+        self._quarantine_directory = directory / "quarantine"
         self._max_items = max_items
         self._max_bytes = max_bytes
         self._lock = RLock()
         self._directory.mkdir(parents=True, exist_ok=True, mode=0o700)
+        self._quarantine_directory.mkdir(parents=True, exist_ok=True, mode=0o700)
 
     def enqueue(self, envelope: dict[str, Any]) -> Path:
         batch_id = envelope["batchId"]
@@ -54,10 +58,14 @@ class EnvelopeSpool:
             items = self.items()
 
             if destination.exists():
-                existing = self._read(destination)
-                if self._canonical_json(existing) == data:
-                    return destination
-                raise DuplicateBatchError("batch ID already exists with different content")
+                try:
+                    existing = self._read(destination)
+                except (OSError, ValueError, json.JSONDecodeError) as error:
+                    self._quarantine_unlocked(destination, "corrupt_spool_entry", str(error))
+                else:
+                    if self._canonical_json(existing) == data:
+                        return destination
+                    raise DuplicateBatchError("batch ID already exists with different content")
 
             source_instance_id = str(envelope["sourceInstanceId"])
             sequence = int(envelope["sequence"])
@@ -69,6 +77,7 @@ class EnvelopeSpool:
                 ):
                     raise SequenceConflictError("source sequence already exists in spool")
 
+            items = self.items()
             used_bytes = self._used_bytes(items)
             if len(items) >= self._max_items or used_bytes + data_size > self._max_bytes:
                 raise SpoolFullError("bridge spool capacity reached")
@@ -95,27 +104,37 @@ class EnvelopeSpool:
         return destination
 
     def items(self) -> list[Path]:
-        """Daftar item spool dalam urutan source, sequence, lalu batch ID."""
+        """Return healthy pending items in source/sequence/batch replay order.
 
-        def replay_order(path: Path) -> tuple[str, int, str]:
-            envelope = self._read(path)
-            return (
-                str(envelope["sourceInstanceId"]),
-                int(envelope["sequence"]),
-                str(envelope["batchId"]),
-            )
+        Corrupt files are moved to quarantine so one bad entry cannot block the
+        entire FIFO after a crash, partial write, or manual file modification.
+        """
 
+        healthy: list[tuple[tuple[str, int, str], Path]] = []
         with self._lock:
-            return sorted(self._directory.glob("*.json"), key=replay_order)
+            for path in list(self._directory.glob("*.json")):
+                try:
+                    envelope = self._read(path)
+                    replay_order = (
+                        str(envelope["sourceInstanceId"]),
+                        int(envelope["sequence"]),
+                        str(envelope["batchId"]),
+                    )
+                except (OSError, ValueError, TypeError, KeyError, json.JSONDecodeError) as error:
+                    self._quarantine_unlocked(path, "corrupt_spool_entry", str(error))
+                    continue
+                healthy.append((replay_order, path))
+            return [path for _, path in sorted(healthy, key=lambda item: item[0])]
 
     def status(self) -> dict[str, float | int | str]:
-        """Ringkasan kapasitas spool yang aman ditampilkan melalui health check."""
+        """Return capacity and quarantine counters safe for health reporting."""
 
         with self._lock:
             items = self.items()
             depth = len(items)
             used_bytes = self._used_bytes(items)
             disk_free_bytes = shutil.disk_usage(self._directory).free
+            quarantine_depth = len(list(self._quarantine_directory.glob("*.json"))) // 2
             return {
                 "status": (
                     "FULL"
@@ -128,10 +147,11 @@ class EnvelopeSpool:
                 "maxBytes": self._max_bytes,
                 "utilizationPercent": round((used_bytes / self._max_bytes) * 100, 4),
                 "diskFreeBytes": disk_free_bytes,
+                "quarantineDepth": quarantine_depth,
             }
 
     def peek(self) -> tuple[Path, dict[str, Any]] | None:
-        """Lihat envelope pertama tanpa menghapusnya dari antrean."""
+        """Return the oldest healthy envelope without removing it."""
 
         items = self.items()
         if not items:
@@ -140,14 +160,56 @@ class EnvelopeSpool:
         return path, self._read(path)
 
     def acknowledge(self, path: Path) -> None:
-        """Hapus item spool yang telah berhasil diproses oleh pemanggil."""
+        """Delete one item only after downstream acknowledgement."""
 
         with self._lock:
-            resolved_directory = self._directory.resolve()
-            resolved_path = path.resolve()
-            if resolved_path.parent != resolved_directory or resolved_path.suffix != ".json":
-                raise ValueError("path is outside the spool")
+            resolved_path = self._validate_pending_path(path)
             resolved_path.unlink()
+
+    def quarantine(self, path: Path, reason: str, detail: str = "") -> Path:
+        """Move an unreplayable pending item aside with durable diagnostic metadata."""
+
+        if not reason.strip():
+            raise ValueError("quarantine reason must not be empty")
+        with self._lock:
+            resolved_path = self._validate_pending_path(path)
+            return self._quarantine_unlocked(resolved_path, reason, detail)
+
+    def quarantined_items(self) -> list[Path]:
+        """Return quarantined payload files, excluding their metadata sidecars."""
+
+        with self._lock:
+            return sorted(
+                path
+                for path in self._quarantine_directory.glob("*.json")
+                if not path.name.endswith(".meta.json")
+            )
+
+    def _quarantine_unlocked(self, path: Path, reason: str, detail: str) -> Path:
+        if not path.exists():
+            raise FileNotFoundError(path)
+        unique = time.time_ns()
+        destination = self._quarantine_directory / f"{path.stem}-{unique}.json"
+        metadata_path = self._quarantine_directory / f"{path.stem}-{unique}.meta.json"
+        os.replace(path, destination)
+        metadata = {
+            "originalName": path.name,
+            "reason": reason,
+            "detail": detail[:2048],
+            "quarantinedAt": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
+        }
+        with metadata_path.open("x", encoding="utf-8") as metadata_file:
+            json.dump(metadata, metadata_file, ensure_ascii=False, separators=(",", ":"), sort_keys=True)
+            metadata_file.flush()
+            os.fsync(metadata_file.fileno())
+        return destination
+
+    def _validate_pending_path(self, path: Path) -> Path:
+        resolved_directory = self._directory.resolve()
+        resolved_path = path.resolve()
+        if resolved_path.parent != resolved_directory or resolved_path.suffix != ".json":
+            raise ValueError("path is outside the spool")
+        return resolved_path
 
     @staticmethod
     def _canonical_json(envelope: dict[str, Any]) -> str:
