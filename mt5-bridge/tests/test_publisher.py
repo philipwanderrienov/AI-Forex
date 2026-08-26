@@ -1,3 +1,4 @@
+import json
 import tempfile
 import unittest
 from pathlib import Path
@@ -32,6 +33,7 @@ class SpoolReplayerTests(unittest.TestCase):
 
             self.assertEqual(PublishDisposition.ACK, result.disposition)
             self.assertEqual(0, spool.status()["depth"])
+            self.assertEqual(0, spool.status()["quarantineDepth"])
 
     def test_transient_failure_retries_then_acknowledges(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -77,18 +79,53 @@ class SpoolReplayerTests(unittest.TestCase):
 
             self.assertEqual(PublishDisposition.RETRY, result.disposition)
             self.assertEqual(1, spool.status()["depth"])
+            self.assertEqual(0, spool.status()["quarantineDepth"])
 
-    def test_permanent_failure_does_not_retry_or_acknowledge(self):
+    def test_permanent_failure_is_quarantined_without_retry(self):
         with tempfile.TemporaryDirectory() as directory:
             spool = EnvelopeSpool(Path(directory))
             spool.enqueue(valid_envelope())
-            publisher = ScriptedPublisher(PublishResult(PublishDisposition.PERMANENT_FAILURE, 400))
+            publisher = ScriptedPublisher(
+                PublishResult(PublishDisposition.PERMANENT_FAILURE, 400, "invalid envelope")
+            )
 
             result = SpoolReplayer(spool, publisher, max_attempts=5).replay_one()
 
             self.assertEqual(PublishDisposition.PERMANENT_FAILURE, result.disposition)
             self.assertEqual(1, publisher.calls)
-            self.assertEqual(1, spool.status()["depth"])
+            self.assertEqual(0, spool.status()["depth"])
+            self.assertEqual(1, spool.status()["quarantineDepth"])
+            quarantined = spool.quarantined_items()[0]
+            metadata = json.loads(
+                quarantined.with_name(quarantined.stem + ".meta.json").read_text(encoding="utf-8")
+            )
+            self.assertEqual("permanent_backend_rejection", metadata["reason"])
+            self.assertIn("HTTP 400", metadata["detail"])
+            self.assertIn("invalid envelope", metadata["detail"])
+
+    def test_permanent_failure_does_not_block_next_envelope(self):
+        with tempfile.TemporaryDirectory() as directory:
+            spool = EnvelopeSpool(Path(directory))
+            first = valid_envelope()
+            second = valid_envelope()
+            second["sequence"] += 1
+            second["batchId"] = "01J5J5Y22B8NKZ4M6KW7MPNN6D"
+            spool.enqueue(first)
+            spool.enqueue(second)
+            publisher = ScriptedPublisher(
+                PublishResult(PublishDisposition.PERMANENT_FAILURE, 400, "bad first"),
+                PublishResult(PublishDisposition.ACK, 202),
+            )
+            replayer = SpoolReplayer(spool, publisher)
+
+            first_result = replayer.replay_one()
+            second_result = replayer.replay_one()
+
+            self.assertEqual(PublishDisposition.PERMANENT_FAILURE, first_result.disposition)
+            self.assertEqual(PublishDisposition.ACK, second_result.disposition)
+            self.assertEqual(2, publisher.calls)
+            self.assertEqual(0, spool.status()["depth"])
+            self.assertEqual(1, spool.status()["quarantineDepth"])
 
     def test_empty_spool_does_nothing(self):
         with tempfile.TemporaryDirectory() as directory:
