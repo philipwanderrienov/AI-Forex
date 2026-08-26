@@ -9,7 +9,6 @@ import urllib.error
 import urllib.request
 from dataclasses import dataclass
 from enum import Enum
-from pathlib import Path
 from typing import Any, Callable
 
 from .spool import EnvelopeSpool
@@ -29,7 +28,7 @@ class PublishResult:
 
 
 class BackendPublisher:
-    """Publishes one envelope and classifies the downstream response."""
+    """Publish one envelope and classify the downstream response."""
 
     def __init__(self, url: str, timeout_seconds: float = 5.0) -> None:
         if not url.startswith(("http://", "https://")):
@@ -65,7 +64,7 @@ class BackendPublisher:
 
 
 class SpoolReplayer:
-    """Replays the oldest pending envelope and removes it only after an ACK."""
+    """Replay the oldest pending envelope using ACK-driven removal semantics."""
 
     def __init__(
         self,
@@ -102,6 +101,8 @@ class SpoolReplayer:
                 self._spool.acknowledge(path)
                 return result
             if result.disposition is PublishDisposition.PERMANENT_FAILURE:
+                detail = f"HTTP {result.status_code}: {result.detail}" if result.status_code else result.detail
+                self._spool.quarantine(path, "permanent_backend_rejection", detail)
                 return result
             if attempt + 1 < self._max_attempts:
                 self._sleep(self._retry_delay(attempt))
