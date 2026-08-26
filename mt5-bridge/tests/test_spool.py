@@ -1,4 +1,5 @@
 import copy
+import json
 import tempfile
 import unittest
 from pathlib import Path
@@ -118,7 +119,70 @@ class EnvelopeSpoolTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 spool.acknowledge(outside)
 
-    def test_status_reports_depth_capacity_and_full_state(self):
+    def test_corrupt_json_is_quarantined_and_does_not_block_healthy_item(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            spool = EnvelopeSpool(root)
+            corrupt = root / "corrupt.json"
+            corrupt.write_text("{not-json", encoding="utf-8")
+            healthy = valid_envelope()
+            healthy_path = spool.enqueue(healthy)
+
+            items = spool.items()
+
+            self.assertEqual([healthy_path], items)
+            self.assertFalse(corrupt.exists())
+            self.assertEqual(1, len(spool.quarantined_items()))
+            self.assertEqual(1, spool.status()["quarantineDepth"])
+
+    def test_invalid_spool_shape_is_quarantined(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            spool = EnvelopeSpool(root)
+            invalid = root / "invalid.json"
+            invalid.write_text("[]", encoding="utf-8")
+
+            self.assertEqual([], spool.items())
+            self.assertFalse(invalid.exists())
+            self.assertEqual(1, len(spool.quarantined_items()))
+
+    def test_manual_quarantine_moves_payload_and_writes_metadata(self):
+        with tempfile.TemporaryDirectory() as directory:
+            spool = EnvelopeSpool(Path(directory))
+            pending = spool.enqueue(valid_envelope())
+
+            quarantined = spool.quarantine(pending, "test_reason", "diagnostic detail")
+
+            self.assertFalse(pending.exists())
+            self.assertTrue(quarantined.exists())
+            self.assertEqual(0, spool.status()["depth"])
+            self.assertEqual(1, spool.status()["quarantineDepth"])
+            metadata_path = quarantined.with_name(quarantined.stem + ".meta.json")
+            metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
+            self.assertEqual("test_reason", metadata["reason"])
+            self.assertEqual("diagnostic detail", metadata["detail"])
+            self.assertEqual(pending.name, metadata["originalName"])
+            self.assertTrue(metadata["quarantinedAt"].endswith("Z"))
+
+    def test_quarantine_rejects_path_outside_spool(self):
+        with tempfile.TemporaryDirectory() as directory:
+            spool = EnvelopeSpool(Path(directory) / "spool")
+            outside = Path(directory) / "outside.json"
+            outside.write_text("{}", encoding="utf-8")
+
+            with self.assertRaises(ValueError):
+                spool.quarantine(outside, "outside")
+
+    def test_quarantine_requires_non_empty_reason(self):
+        with tempfile.TemporaryDirectory() as directory:
+            spool = EnvelopeSpool(Path(directory))
+            pending = spool.enqueue(valid_envelope())
+
+            with self.assertRaises(ValueError):
+                spool.quarantine(pending, "   ")
+            self.assertTrue(pending.exists())
+
+    def test_status_reports_depth_capacity_full_and_quarantine_state(self):
         with tempfile.TemporaryDirectory() as directory:
             spool = EnvelopeSpool(Path(directory), max_items=1)
             empty_status = spool.status()
@@ -126,13 +190,20 @@ class EnvelopeSpoolTests(unittest.TestCase):
             self.assertEqual(0, empty_status["depth"])
             self.assertEqual(0, empty_status["usedBytes"])
             self.assertEqual(0.0, empty_status["utilizationPercent"])
+            self.assertEqual(0, empty_status["quarantineDepth"])
 
-            spool.enqueue(valid_envelope())
+            path = spool.enqueue(valid_envelope())
             full_status = spool.status()
             self.assertEqual("FULL", full_status["status"])
             self.assertEqual(1, full_status["depth"])
             self.assertGreater(full_status["usedBytes"], 0)
             self.assertGreater(full_status["utilizationPercent"], 0)
+
+            spool.quarantine(path, "test")
+            quarantined_status = spool.status()
+            self.assertEqual("AVAILABLE", quarantined_status["status"])
+            self.assertEqual(0, quarantined_status["depth"])
+            self.assertEqual(1, quarantined_status["quarantineDepth"])
 
     def test_byte_capacity_rejects_item_that_would_exceed_limit(self):
         with tempfile.TemporaryDirectory() as directory:
