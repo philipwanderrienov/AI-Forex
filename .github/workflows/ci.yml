@@ -1,5 +1,6 @@
 name: CI
 
+# Runs the full quality gate on integration and development branches.
 on:
   push:
     branches: [main, GPT, Codex]
