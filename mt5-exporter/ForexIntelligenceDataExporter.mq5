@@ -1,18 +1,34 @@
 #property strict
-#property version "0.2"
-#property description "Read-only heartbeat and H1 candle exporter for Forex Intelligence"
+#property version "0.3"
+#property description "Read-only multi-symbol M15/H1/H4 candle exporter for Forex Intelligence"
 
 input string HeartbeatUrl = "http://127.0.0.1:8001/v1/mt5/heartbeat";
 input string EnvelopeUrl = "http://127.0.0.1:8001/v1/mt5/envelopes";
 input string SourceInstanceId = "lubuntu-mt5-primary";
 input string BrokerServerAlias = "demo-primary";
-input string BrokerSymbol = "EURUSD";
-input string CanonicalInstrument = "EURUSD";
+
+// Broker symbols are configurable because some brokers append suffixes/prefixes.
+// Canonical instrument names remain fixed by the bridge contract.
+input string BrokerSymbolEURUSD = "EURUSD";
+input string BrokerSymbolGBPUSD = "GBPUSD";
+input string BrokerSymbolEURGBP = "EURGBP";
+input string BrokerSymbolEURCHF = "EURCHF";
+input string BrokerSymbolXAUUSD = "XAUUSD";
+
 input int HeartbeatIntervalSeconds = 1;
+input int CandlePollIntervalSeconds = 15;
 input int RequestTimeoutMilliseconds = 5000;
 
+#define INSTRUMENT_COUNT 5
+#define TIMEFRAME_COUNT 3
+
 ulong Sequence = 0;
-datetime LastPublishedH1OpenTime = 0;
+datetime LastCandlePollAt = 0;
+datetime LastPublishedOpenTime[INSTRUMENT_COUNT][TIMEFRAME_COUNT];
+string BrokerSymbols[INSTRUMENT_COUNT];
+string CanonicalInstruments[INSTRUMENT_COUNT];
+ENUM_TIMEFRAMES ExportTimeframes[TIMEFRAME_COUNT];
+string ExportTimeframeNames[TIMEFRAME_COUNT];
 
 string UtcIso(const datetime value)
   {
@@ -103,34 +119,53 @@ void PublishHeartbeat()
       PrintFormat("Heartbeat rejected. HTTP status=%d",status);
   }
 
-bool PublishLatestFinalH1()
+bool PublishLatestFinalCandle(const int instrument_index,const int timeframe_index)
   {
-   if(!SymbolSelect(BrokerSymbol,true))
+   string broker_symbol=BrokerSymbols[instrument_index];
+   string canonical_instrument=CanonicalInstruments[instrument_index];
+   ENUM_TIMEFRAMES timeframe=ExportTimeframes[timeframe_index];
+   string timeframe_name=ExportTimeframeNames[timeframe_index];
+
+   if(!SymbolSelect(broker_symbol,true))
      {
-      PrintFormat("Cannot select broker symbol %s. error=%d",BrokerSymbol,GetLastError());
+      PrintFormat("Cannot select broker symbol %s for %s. error=%d",broker_symbol,canonical_instrument,GetLastError());
       return false;
      }
 
    MqlRates rates[];
    ArraySetAsSeries(rates,true);
-   int count=CopyRates(BrokerSymbol,PERIOD_H1,1,1,rates);
+   ResetLastError();
+   int count=CopyRates(broker_symbol,timeframe,1,1,rates);
    if(count!=1)
      {
-      PrintFormat("CopyRates H1 failed for %s. copied=%d error=%d",BrokerSymbol,count,GetLastError());
+      PrintFormat(
+         "CopyRates failed for %s %s (broker=%s). copied=%d error=%d",
+         canonical_instrument,timeframe_name,broker_symbol,count,GetLastError());
       return false;
      }
 
-   if(rates[0].time==LastPublishedH1OpenTime)
+   if(rates[0].time==LastPublishedOpenTime[instrument_index][timeframe_index])
       return true;
 
-   // MT5 bar times use broker/server time. For the current final candle we convert
-   // using the terminal's current server-to-UTC offset. Historical DST-aware backfill
-   // will be implemented separately before historical ingestion is enabled.
+   // MT5 bar times use broker/server time. For current final candles we convert
+   // using the terminal's current server-to-UTC offset. Historical DST-aware
+   // backfill remains a separate future concern.
    int server_utc_offset=(int)(TimeTradeServer()-TimeGMT());
    datetime open_utc=rates[0].time-server_utc_offset;
-   datetime close_utc=open_utc+PeriodSeconds(PERIOD_H1);
+   datetime close_utc=open_utc+PeriodSeconds(timeframe);
    datetime received_utc=TimeGMT();
-   int digits=(int)SymbolInfoInteger(BrokerSymbol,SYMBOL_DIGITS);
+
+   // Do not publish a bar until its canonical close is actually in the past.
+   // This protects the bridge FINAL-candle invariant during terminal/history lag.
+   if(close_utc>received_utc)
+      return true;
+
+   int digits=(int)SymbolInfoInteger(broker_symbol,SYMBOL_DIGITS);
+   if(digits<0)
+     {
+      PrintFormat("Cannot resolve digits for broker symbol %s. error=%d",broker_symbol,GetLastError());
+      return false;
+     }
 
    string open_price=DoubleToString(rates[0].open,digits);
    string high_price=DoubleToString(rates[0].high,digits);
@@ -138,18 +173,18 @@ bool PublishLatestFinalH1()
    string close_price=DoubleToString(rates[0].close,digits);
 
    // Keep keys in lexicographic order. The Python contract hashes canonical JSON
-   // with sorted keys and compact separators, so this exact record string produces
-   // the same SHA-256 for this ASCII-only starter payload.
+   // with sorted keys and compact separators, so this exact ASCII record string
+   // produces the same SHA-256 checksum.
    string record=StringFormat(
-      "{\"brokerServerAlias\":\"%s\",\"brokerSymbol\":\"%s\",\"close\":\"%s\",\"closeTime\":\"%s\",\"dataQuality\":\"GOOD\",\"high\":\"%s\",\"instrument\":\"%s\",\"low\":\"%s\",\"open\":\"%s\",\"openTime\":\"%s\",\"receivedAt\":\"%s\",\"schemaVersion\":\"candle.v1\",\"source\":\"MT5\",\"status\":\"FINAL\",\"tickVolume\":%I64d,\"timeframe\":\"H1\"}",
-      EscapeJson(BrokerServerAlias),EscapeJson(BrokerSymbol),close_price,UtcIso(close_utc),
-      high_price,EscapeJson(CanonicalInstrument),low_price,open_price,UtcIso(open_utc),
-      UtcIso(received_utc),rates[0].tick_volume);
+      "{\"brokerServerAlias\":\"%s\",\"brokerSymbol\":\"%s\",\"close\":\"%s\",\"closeTime\":\"%s\",\"dataQuality\":\"GOOD\",\"high\":\"%s\",\"instrument\":\"%s\",\"low\":\"%s\",\"open\":\"%s\",\"openTime\":\"%s\",\"receivedAt\":\"%s\",\"schemaVersion\":\"candle.v1\",\"source\":\"MT5\",\"status\":\"FINAL\",\"tickVolume\":%I64d,\"timeframe\":\"%s\"}",
+      EscapeJson(BrokerServerAlias),EscapeJson(broker_symbol),close_price,UtcIso(close_utc),
+      high_price,EscapeJson(canonical_instrument),low_price,open_price,UtcIso(open_utc),
+      UtcIso(received_utc),rates[0].tick_volume,EscapeJson(timeframe_name));
 
    string checksum=Sha256("["+record+"]");
    if(checksum=="")
      {
-      Print("Cannot calculate candle SHA-256 checksum.");
+      PrintFormat("Cannot calculate SHA-256 checksum for %s %s.",canonical_instrument,timeframe_name);
       return false;
      }
 
@@ -162,14 +197,27 @@ bool PublishLatestFinalH1()
    int status=PostJson(EnvelopeUrl,envelope);
    if(status==202)
      {
-      LastPublishedH1OpenTime=rates[0].time;
-      PrintFormat("Published FINAL %s H1 candle. open=%s sequence=%I64u",CanonicalInstrument,UtcIso(open_utc),Sequence);
+      LastPublishedOpenTime[instrument_index][timeframe_index]=rates[0].time;
+      PrintFormat(
+         "Published FINAL %s %s candle. broker=%s open=%s sequence=%I64u",
+         canonical_instrument,timeframe_name,broker_symbol,UtcIso(open_utc),Sequence);
       return true;
      }
 
    if(status>=0)
-      PrintFormat("Candle envelope rejected. HTTP status=%d",status);
+      PrintFormat(
+         "Candle envelope rejected. instrument=%s timeframe=%s HTTP status=%d",
+         canonical_instrument,timeframe_name,status);
    return false;
+  }
+
+void PollLatestFinalCandles()
+  {
+   for(int instrument_index=0;instrument_index<INSTRUMENT_COUNT;instrument_index++)
+     {
+      for(int timeframe_index=0;timeframe_index<TIMEFRAME_COUNT;timeframe_index++)
+         PublishLatestFinalCandle(instrument_index,timeframe_index);
+     }
   }
 
 int OnInit()
@@ -179,19 +227,52 @@ int OnInit()
       Print("HeartbeatIntervalSeconds must be at least 1.");
       return INIT_PARAMETERS_INCORRECT;
      }
+   if(CandlePollIntervalSeconds<1)
+     {
+      Print("CandlePollIntervalSeconds must be at least 1.");
+      return INIT_PARAMETERS_INCORRECT;
+     }
    if(RequestTimeoutMilliseconds<1000)
      {
       Print("RequestTimeoutMilliseconds must be at least 1000.");
       return INIT_PARAMETERS_INCORRECT;
      }
-   if(CanonicalInstrument!="EURUSD")
+
+   BrokerSymbols[0]=BrokerSymbolEURUSD;
+   BrokerSymbols[1]=BrokerSymbolGBPUSD;
+   BrokerSymbols[2]=BrokerSymbolEURGBP;
+   BrokerSymbols[3]=BrokerSymbolEURCHF;
+   BrokerSymbols[4]=BrokerSymbolXAUUSD;
+
+   CanonicalInstruments[0]="EURUSD";
+   CanonicalInstruments[1]="GBPUSD";
+   CanonicalInstruments[2]="EURGBP";
+   CanonicalInstruments[3]="EURCHF";
+   CanonicalInstruments[4]="XAUUSD";
+
+   ExportTimeframes[0]=PERIOD_M15;
+   ExportTimeframes[1]=PERIOD_H1;
+   ExportTimeframes[2]=PERIOD_H4;
+   ExportTimeframeNames[0]="M15";
+   ExportTimeframeNames[1]="H1";
+   ExportTimeframeNames[2]="H4";
+
+   for(int instrument_index=0;instrument_index<INSTRUMENT_COUNT;instrument_index++)
      {
-      Print("Starter milestone currently supports canonical EURUSD only.");
-      return INIT_PARAMETERS_INCORRECT;
+      if(StringLen(BrokerSymbols[instrument_index])<1)
+        {
+         PrintFormat("Broker symbol for %s must not be empty.",CanonicalInstruments[instrument_index]);
+         return INIT_PARAMETERS_INCORRECT;
+        }
+      for(int timeframe_index=0;timeframe_index<TIMEFRAME_COUNT;timeframe_index++)
+         LastPublishedOpenTime[instrument_index][timeframe_index]=0;
      }
 
    MathSrand((int)GetTickCount());
    EventSetTimer(HeartbeatIntervalSeconds);
+   PrintFormat(
+      "Forex Intelligence exporter initialized. instruments=%d timeframes=%d candlePollSeconds=%d",
+      INSTRUMENT_COUNT,TIMEFRAME_COUNT,CandlePollIntervalSeconds);
    return INIT_SUCCEEDED;
   }
 
@@ -203,5 +284,11 @@ void OnDeinit(const int reason)
 void OnTimer()
   {
    PublishHeartbeat();
-   PublishLatestFinalH1();
+
+   datetime now=TimeLocal();
+   if(LastCandlePollAt==0 || now-LastCandlePollAt>=CandlePollIntervalSeconds)
+     {
+      LastCandlePollAt=now;
+      PollLatestFinalCandles();
+     }
   }
