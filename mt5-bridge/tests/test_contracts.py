@@ -55,6 +55,15 @@ class CandleEnvelopeTests(unittest.TestCase):
         payload = valid_envelope()
         self.assertIs(payload, validate_candle_envelope(payload))
 
+    def test_mt5_legacy_utc_timestamps_are_accepted(self):
+        payload = valid_envelope()
+        payload["sentAt"] = "2026.08.17 08:15:04"
+        payload["records"][0]["openTime"] = "2026.08.17 07:00:00"
+        payload["records"][0]["closeTime"] = "2026.08.17 08:00:00"
+        payload["records"][0]["receivedAt"] = "2026.08.17 08:00:01"
+        refresh_checksum(payload)
+        self.assertIs(payload, validate_candle_envelope(payload))
+
     def test_multiple_valid_records_are_accepted_in_original_order(self):
         payload = valid_envelope()
         second = copy.deepcopy(payload["records"][0])
@@ -164,6 +173,14 @@ class HeartbeatTests(unittest.TestCase):
             "schemaVersion": "mt5-heartbeat.v1",
             "sourceInstanceId": "lubuntu-mt5-primary",
             "sentAt": "2026-08-20T01:00:00Z",
+        }
+        self.assertIs(heartbeat, validate_heartbeat(heartbeat))
+
+    def test_mt5_legacy_utc_heartbeat_is_accepted(self):
+        heartbeat = {
+            "schemaVersion": "mt5-heartbeat.v1",
+            "sourceInstanceId": "lubuntu-mt5-primary",
+            "sentAt": "2026.08.20 01:00:00",
         }
         self.assertIs(heartbeat, validate_heartbeat(heartbeat))
 
