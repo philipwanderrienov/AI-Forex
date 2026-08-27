@@ -15,7 +15,12 @@ datetime LastPublishedH1OpenTime = 0;
 
 string UtcIso(const datetime value)
   {
-   return TimeToString(value,TIME_DATE|TIME_SECONDS)+"Z";
+   MqlDateTime parts;
+   if(!TimeToStruct(value,parts))
+      return "";
+   return StringFormat(
+      "%04d-%02d-%02dT%02d:%02d:%02dZ",
+      parts.year,parts.mon,parts.day,parts.hour,parts.min,parts.sec);
   }
 
 string EscapeJson(const string value)

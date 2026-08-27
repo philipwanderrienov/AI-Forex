@@ -24,6 +24,7 @@ Phase 02 market-data acquisition. Development is intentionally focused on the MT
 - A backend publisher component supports ACK-driven removal and bounded retry with exponential backoff and jitter. It is unit-tested but not yet wired into the bridge runtime or a compatible .NET batch-ingestion endpoint.
 - Structured JSON logging and recursive secret redaction are implemented.
 - The receiver returns `202 duplicate` for an identical retry, `409 batch_id_conflict` for conflicting batch reuse, `409 sequence_conflict` for conflicting source sequence reuse, and `507 spool_full` when capacity is exhausted.
+- The MQL5 exporter formats heartbeat and candle timestamps as canonical ISO-8601 UTC (`YYYY-MM-DDTHH:MM:SSZ`) rather than the dotted display format returned by `TimeToString`.
 
 ## Locally verified by user
 
@@ -78,6 +79,7 @@ The temporary server was stopped and its spool was automatically removed after v
 
 - Real MT5 -> MQL5 -> Python heartbeat.
 - Real EURUSD H1 candle -> Python validation -> spool.
-- The dedicated server laptop is still being prepared.
+- The latest MQL5 timestamp-format correction still needs compilation in MetaEditor as part of the real-terminal test.
+- The user reports that the dedicated server laptop, MT5 installation, and demo account are ready for the real-terminal milestone.
 - M15/H4 and multi-symbol export are intentionally deferred until the first H1 real-data milestone succeeds.
 - The publisher is not connected to the bridge runtime, machine authentication, or a compatible idempotent .NET batch-ingestion endpoint.
