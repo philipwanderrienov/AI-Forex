@@ -10,7 +10,7 @@ from __future__ import annotations
 import re
 import hashlib
 import json
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from decimal import Decimal, InvalidOperation
 from typing import Any
 
@@ -26,6 +26,7 @@ _TIMEFRAME_DURATIONS = {
     "H4": timedelta(hours=4),
 }
 _CANDLE_STATUSES = {"PARTIAL", "FINAL"}
+_MT5_UTC_TIMESTAMP_FORMAT = "%Y.%m.%d %H:%M:%S"
 
 
 class ContractValidationError(ValueError):
@@ -204,16 +205,25 @@ def _bounded_text(value: Any, maximum_length: int) -> bool:
 
 
 def _parse_utc_timestamp(value: Any, error_code: str) -> datetime:
-    """Ubah timestamp ISO 8601 berakhiran ``Z`` menjadi ``datetime`` UTC.
+    """Parse timestamp UTC dari format kanonis atau format native MT5 lama.
 
-    ``error_code`` diteruskan ke kesalahan kontrak agar setiap field dapat
-    melaporkan penyebab yang tepat kepada pemanggil.
+    Format kanonis tetap ISO-8601 berakhiran ``Z``. Bridge juga menerima
+    ``YYYY.MM.DD HH:MM:SS`` sebagai format kompatibilitas untuk terminal MT5/Wine
+    yang masih mengirim hasil ``TimeToString``. Nilai kompatibilitas diperlakukan
+    sebagai UTC hanya untuk validasi; payload asli tidak dimodifikasi.
     """
 
-    if not isinstance(value, str) or not value.endswith("Z"):
+    if not isinstance(value, str) or not value:
         raise ContractValidationError(error_code)
+
+    if value.endswith("Z"):
+        try:
+            return datetime.fromisoformat(value[:-1] + "+00:00")
+        except ValueError as error:
+            raise ContractValidationError(error_code) from error
+
     try:
-        return datetime.fromisoformat(value[:-1] + "+00:00")
+        return datetime.strptime(value, _MT5_UTC_TIMESTAMP_FORMAT).replace(tzinfo=timezone.utc)
     except ValueError as error:
         raise ContractValidationError(error_code) from error
 
