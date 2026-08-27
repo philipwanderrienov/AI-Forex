@@ -25,6 +25,10 @@ Candle indeks `0` tidak dikirim. Exporter mengambil shift `1` melalui `CopyRates
 6. Periksa tab Experts. Setelah request diterima, EA menulis log `Published FINAL EURUSD H1 candle`.
 7. Periksa `GET http://127.0.0.1:8001/health`; depth spool harus bertambah setelah batch candle baru diterima.
 
+`RequestTimeoutMilliseconds` default ke 5000 ms agar durable spool write dan `fsync` pada
+collector yang lambat tidak mudah dibaca sebagai timeout oleh WebRequest MT5/Wine. Respons
+di luar HTTP 2xx dicatat bersama MQL5 error, response body, dan headers untuk diagnosis.
+
 Endpoint yang digunakan:
 
 ```text

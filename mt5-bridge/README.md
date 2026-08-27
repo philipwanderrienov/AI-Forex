@@ -17,6 +17,10 @@ respons `202 Accepted`. Komponen publisher, ACK-driven removal, retry/backoff, d
 sudah tersedia dan diuji secara terpisah, tetapi belum dijalankan oleh proses receiver atau
 dihubungkan ke endpoint ingestion .NET.
 
+Receiver menjawab menggunakan HTTP/1.1 agar client MT5/Wine yang memakai handshake
+`Expect: 100-continue` untuk payload envelope tidak mengalami read timeout sebelum body
+dikirim.
+
 ```bash
 cd mt5-bridge
 python3 -m venv .venv

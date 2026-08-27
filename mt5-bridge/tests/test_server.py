@@ -20,6 +20,9 @@ class BridgeConfigurationTests(unittest.TestCase):
     def test_body_limit_is_bounded(self) -> None:
         self.assertEqual(64 * 1024, MAX_BODY_BYTES)
 
+    def test_receiver_uses_http_1_1_for_expect_continue_clients(self) -> None:
+        self.assertEqual("HTTP/1.1", BridgeRequestHandler.protocol_version)
+
 
 class BridgeHttpTests(unittest.TestCase):
     def setUp(self) -> None:

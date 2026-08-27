@@ -32,6 +32,7 @@ class BridgeRequestHandler(BaseHTTPRequestHandler):
     """Accept health checks and bounded MT5 heartbeat payloads."""
 
     server_version = "ForexIntelligenceBridge/0.1"
+    protocol_version = "HTTP/1.1"
     spool: EnvelopeSpool | None = None
     heartbeat_monitor = HeartbeatMonitor()
 

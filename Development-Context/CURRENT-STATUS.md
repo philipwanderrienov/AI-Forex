@@ -25,8 +25,24 @@ Phase 02 market-data acquisition. Development is intentionally focused on the MT
 - Structured JSON logging and recursive secret redaction are implemented.
 - The receiver returns `202 duplicate` for an identical retry, `409 batch_id_conflict` for conflicting batch reuse, `409 sequence_conflict` for conflicting source sequence reuse, and `507 spool_full` when capacity is exhausted.
 - The MQL5 exporter formats heartbeat and candle timestamps as canonical ISO-8601 UTC (`YYYY-MM-DDTHH:MM:SSZ`) rather than the dotted display format returned by `TimeToString`.
+- The MQL5 WebRequest timeout is configurable and defaults to 5000 ms, with diagnostic logging for non-2xx responses. This follows intermittent `status=1003` observations on the real MT5/Wine terminal with the earlier 1000 ms timeout.
+- The Python receiver now responds with HTTP/1.1 so MT5/Wine can complete `Expect: 100-continue` negotiation for the larger candle envelope. Real-terminal evidence showed heartbeats reaching the handler while envelope requests timed out with status 1003 before any envelope event was logged under HTTP/1.0.
 
 ## Locally verified by user
+
+On 2026-08-27, the real MT5 demo terminal on the dedicated server laptop successfully reached
+the native Python bridge through the MQL5 exporter. After enabling algorithmic trading and
+allowing `http://127.0.0.1:8001` under MT5 `Tools -> Options -> Experts`, `GET /health`
+reported terminal status `HEALTHY`. This verifies the real MT5 -> MQL5 -> Python heartbeat
+boundary.
+
+The first real `EURUSD H1` FINAL-candle milestone also completed successfully on the
+MetaQuotes demo server. After correcting the account/server configuration, refreshing current
+broker history, increasing the MQL5 request timeout, and enabling HTTP/1.1 for MT5/Wine
+`Expect: 100-continue` compatibility, the EA logged `Published FINAL EURUSD H1 candle`.
+The bridge accepted the envelope, stored it in the dedicated durable spool, and did not add
+repeated copies of the same final candle. The user confirmed the stored candle data matched
+the intended current H1 test.
 
 The MT5 simulator happy path has now been verified successfully on the user's Mac development machine.
 
@@ -58,7 +74,7 @@ The temporary bridge process was stopped and its isolated test spool was removed
 
 On 2026-08-27:
 
-- `PYTHONPATH=src python3 -m unittest discover -s tests -v` completed successfully with 68 tests passing from `mt5-bridge/`.
+- `PYTHONPATH=src python3 -m unittest discover -s tests -v` completed successfully with 70 tests passing from `mt5-bridge/` after the enqueue and HTTP/1.1 regressions were covered.
 - `dotnet restore ForexIntelligence.sln`, `dotnet build ForexIntelligence.sln --no-restore`, and `dotnet test ForexIntelligence.sln --no-build --no-restore` completed successfully with 21 tests passing and no build warnings.
 - `dotnet format ForexIntelligence.sln --verify-no-changes --no-restore` completed successfully.
 
@@ -77,9 +93,6 @@ The temporary server was stopped and its spool was automatically removed after v
 
 ## Not yet verified
 
-- Real MT5 -> MQL5 -> Python heartbeat.
-- Real EURUSD H1 candle -> Python validation -> spool.
-- The latest MQL5 timestamp-format correction still needs compilation in MetaEditor as part of the real-terminal test.
-- The user reports that the dedicated server laptop, MT5 installation, and demo account are ready for the real-terminal milestone.
-- M15/H4 and multi-symbol export are intentionally deferred until the first H1 real-data milestone succeeds.
+- Real M15/H4 export and the remaining canonical instruments.
+- Real terminal/bridge disconnect, restart, and recovery behavior.
 - The publisher is not connected to the bridge runtime, machine authentication, or a compatible idempotent .NET batch-ingestion endpoint.

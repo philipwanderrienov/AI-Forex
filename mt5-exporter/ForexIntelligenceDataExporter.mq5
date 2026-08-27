@@ -9,6 +9,7 @@ input string BrokerServerAlias = "demo-primary";
 input string BrokerSymbol = "EURUSD";
 input string CanonicalInstrument = "EURUSD";
 input int HeartbeatIntervalSeconds = 1;
+input int RequestTimeoutMilliseconds = 5000;
 
 ulong Sequence = 0;
 datetime LastPublishedH1OpenTime = 0;
@@ -72,13 +73,21 @@ int PostJson(const string url,const string payload)
       "POST",
       url,
       "Content-Type: application/json\r\n",
-      1000,
+      RequestTimeoutMilliseconds,
       request_body,
       response_body,
       response_headers);
 
+   int last_error=GetLastError();
    if(status<0)
-      PrintFormat("Bridge request failed. url=%s MQL5 error=%d",url,GetLastError());
+      PrintFormat("Bridge request failed. url=%s MQL5 error=%d",url,last_error);
+   else if(status<200 || status>=300)
+     {
+      string response=CharArrayToString(response_body,0,WHOLE_ARRAY,CP_UTF8);
+      PrintFormat(
+         "Bridge response unexpected. url=%s status=%d MQL5 error=%d body=%s headers=%s",
+         url,status,last_error,response,response_headers);
+     }
    return status;
   }
 
@@ -168,6 +177,11 @@ int OnInit()
    if(HeartbeatIntervalSeconds<1)
      {
       Print("HeartbeatIntervalSeconds must be at least 1.");
+      return INIT_PARAMETERS_INCORRECT;
+     }
+   if(RequestTimeoutMilliseconds<1000)
+     {
+      Print("RequestTimeoutMilliseconds must be at least 1000.");
       return INIT_PARAMETERS_INCORRECT;
      }
    if(CanonicalInstrument!="EURUSD")
