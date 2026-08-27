@@ -13,7 +13,9 @@ Untuk memahami urutan kerja source Python tanpa membaca kode terlebih dahulu, li
 Bridge ini berjalan native di Lubuntu dan hanya menerima data dari EA melalui `127.0.0.1`.
 Bridge menerima heartbeat starter dan envelope candle `mt5-envelope.v1`, lalu memvalidasi
 kontrak canonical dan menyimpan batch secara atomik ke durable FIFO spool sebelum memberikan
-respons `202 Accepted`. Bridge belum meneruskan data ke backend.
+respons `202 Accepted`. Komponen publisher, ACK-driven removal, retry/backoff, dan quarantine
+sudah tersedia dan diuji secara terpisah, tetapi belum dijalankan oleh proses receiver atau
+dihubungkan ke endpoint ingestion .NET.
 
 ```bash
 cd mt5-bridge
@@ -51,5 +53,13 @@ Menjalankan test:
 PYTHONPATH=src python -m unittest discover -s tests
 ```
 
-Jangan mengubah bind address ke LAN/internet. Authentication, retry/backoff, dan publisher
-backend akan ditambahkan pada Fase 02.
+Menjalankan bounded local soak/load verification (500 envelope dan duplicate setiap 10
+envelope, menggunakan spool sementara yang otomatis dibersihkan):
+
+```bash
+PYTHONPATH=src python tools/bridge_soak_test.py --envelopes 500 --duplicate-every 10
+```
+
+Jangan mengubah bind address ke LAN/internet. Machine authentication, endpoint batch .NET,
+dan integrasi publisher ke runtime receiver akan ditambahkan setelah boundary MT5/Python
+terbukti menggunakan terminal demo nyata.

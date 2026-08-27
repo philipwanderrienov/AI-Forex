@@ -14,7 +14,7 @@ flowchart LR
     Receiver --> Validator[Validasi kontrak]
     Validator -->|valid| Spool[(Durable spool)]
     Validator -->|invalid| Reject[HTTP 400]
-    Spool -.->|tahap berikutnya| Publisher[Publisher + retry]
+    Spool -.->|komponen tersedia; belum diaktifkan di runtime| Publisher[Publisher + retry]
     Publisher -.-> Backend[Backend .NET]
     Backend -.-> Database[(PostgreSQL)]
 ```
@@ -135,12 +135,12 @@ akan terlampaui.
 
 ## Yang belum tersedia
 
-- EA belum mengambil atau mengirim candle/tick nyata; EA saat ini baru heartbeat.
-- Publisher dari spool menuju backend .NET belum tersedia.
-- Retry eksponensial, jitter, dan circuit breaker belum tersedia.
+- EA sudah dapat mengirim satu candle FINAL EURUSD H1, tetapi belum diverifikasi dengan terminal demo nyata.
+- Publisher, ACK-driven removal, retry eksponensial, jitter, dan quarantine sudah tersedia sebagai komponen teruji, tetapi belum diaktifkan di runtime receiver.
+- Circuit breaker belum tersedia.
 - Machine credential dan HTTPS menuju backend belum tersedia.
 - Backend belum memberikan acknowledgement batch yang idempotent.
-- Checkpoint, backfill, quarantine, dan metric spool belum tersedia.
+- Historical checkpoint/backfill dan metric publisher/backend belum tersedia; health spool dan quarantine depth sudah tersedia.
 
 Karena itu bridge saat ini cocok untuk pengembangan dan pengujian kontrak lokal, tetapi belum
 siap dipakai sebagai pipeline market-data produksi.

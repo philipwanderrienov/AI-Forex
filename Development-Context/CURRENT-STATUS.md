@@ -1,6 +1,6 @@
 # Current Development Status
 
-Last updated: 2026-08-25
+Last updated: 2026-08-27
 Owning branch for this update: `Codex`
 
 ## Current focus
@@ -20,6 +20,10 @@ Phase 02 market-data acquisition. Development is intentionally focused on the MT
 - Development-only `mt5-bridge/tools/mt5_simulator.py` sends the same heartbeat and `EURUSD H1` candle contracts as the real exporter using only Python standard-library dependencies.
 - Simulator supports continuous heartbeat, `--once`, duplicate-batch, invalid-OHLC, and disconnect scenarios.
 - Simulator payload generation is covered by unit tests for heartbeat and valid H1 contracts, ULID shape, reusable duplicate batch IDs, and invalid-OHLC rejection with a valid checksum.
+- Durable spool recovery, exact-duplicate detection, batch/sequence conflict detection, corrupt-entry quarantine, and permanent backend rejection quarantine are implemented.
+- A backend publisher component supports ACK-driven removal and bounded retry with exponential backoff and jitter. It is unit-tested but not yet wired into the bridge runtime or a compatible .NET batch-ingestion endpoint.
+- Structured JSON logging and recursive secret redaction are implemented.
+- The receiver returns `202 duplicate` for an identical retry, `409 batch_id_conflict` for conflicting batch reuse, `409 sequence_conflict` for conflicting source sequence reuse, and `507 spool_full` when capacity is exhausted.
 
 ## Locally verified by user
 
@@ -51,7 +55,24 @@ The temporary bridge process was stopped and its isolated test spool was removed
 
 ## Latest automated verification
 
-On 2026-08-25, `PYTHONPATH=src python3 -m unittest discover -s tests -v` completed successfully with 37 tests passing.
+On 2026-08-27:
+
+- `PYTHONPATH=src python3 -m unittest discover -s tests -v` completed successfully with 68 tests passing from `mt5-bridge/`.
+- `dotnet restore ForexIntelligence.sln`, `dotnet build ForexIntelligence.sln --no-restore`, and `dotnet test ForexIntelligence.sln --no-build --no-restore` completed successfully with 21 tests passing and no build warnings.
+- `dotnet format ForexIntelligence.sln --verify-no-changes --no-restore` completed successfully.
+
+## Local soak/load verification
+
+On 2026-08-27, `tools/bridge_soak_test.py` completed a bounded temporary-spool run with:
+
+- 500 accepted envelopes and 50 verified idempotent duplicate retries;
+- receiver health depth matching all accepted envelopes before restart;
+- all 500 pending envelopes recovered after reopening the spool;
+- one deterministic transient backend failure retried and then acknowledged;
+- 499 envelopes acknowledged, one deterministic permanent rejection quarantined, and zero pending envelopes after replay;
+- 501 publisher calls completed in 16.57 seconds end-to-end (33.25 HTTP requests/second during the combined run).
+
+The temporary server was stopped and its spool was automatically removed after verification.
 
 ## Not yet verified
 
@@ -59,4 +80,4 @@ On 2026-08-25, `PYTHONPATH=src python3 -m unittest discover -s tests -v` complet
 - Real EURUSD H1 candle -> Python validation -> spool.
 - The dedicated server laptop is still being prepared.
 - M15/H4 and multi-symbol export are intentionally deferred until the first H1 real-data milestone succeeds.
-- Python -> .NET publishing is not the current focus.
+- The publisher is not connected to the bridge runtime, machine authentication, or a compatible idempotent .NET batch-ingestion endpoint.

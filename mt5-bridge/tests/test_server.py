@@ -154,11 +154,35 @@ class BridgeHttpTests(unittest.TestCase):
         BridgeRequestHandler.spool.enqueue(first)
         second = valid_envelope()
         second["batchId"] = "01J5J5Y22B8NKZ4M6KW7MPNN6D"
+        second["sequence"] += 1
 
         status, payload = self._request("POST", "/v1/mt5/envelopes", second)
 
         self.assertEqual(507, status)
         self.assertEqual({"error": "spool_full"}, payload)
+
+    def test_conflicting_batch_id_is_rejected(self) -> None:
+        first = valid_envelope()
+        BridgeRequestHandler.spool.enqueue(first)
+        conflict = valid_envelope()
+        conflict["sequence"] += 1
+        conflict["sentAt"] = "2026-08-17T09:00:00Z"
+
+        status, payload = self._request("POST", "/v1/mt5/envelopes", conflict)
+
+        self.assertEqual(409, status)
+        self.assertEqual({"error": "batch_id_conflict"}, payload)
+
+    def test_conflicting_sequence_is_rejected(self) -> None:
+        first = valid_envelope()
+        BridgeRequestHandler.spool.enqueue(first)
+        conflict = valid_envelope()
+        conflict["batchId"] = "01J5J5Y22B8NKZ4M6KW7MPNN6D"
+
+        status, payload = self._request("POST", "/v1/mt5/envelopes", conflict)
+
+        self.assertEqual(409, status)
+        self.assertEqual({"error": "sequence_conflict"}, payload)
 
     def _request(
         self,

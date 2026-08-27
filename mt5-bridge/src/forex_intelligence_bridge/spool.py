@@ -8,6 +8,7 @@ import shutil
 import tempfile
 import time
 from datetime import datetime, timezone
+from dataclasses import dataclass
 from pathlib import Path
 from threading import RLock
 from typing import Any
@@ -25,6 +26,14 @@ class DuplicateBatchError(ValueError):
 
 class SequenceConflictError(ValueError):
     """Raised when a source reuses a pending sequence for different content."""
+
+
+@dataclass(frozen=True)
+class EnqueueResult:
+    """Describe whether enqueue created a new durable item or found an exact retry."""
+
+    path: Path
+    duplicate: bool
 
 
 class EnvelopeSpool:
@@ -49,6 +58,17 @@ class EnvelopeSpool:
         self._quarantine_directory.mkdir(parents=True, exist_ok=True, mode=0o700)
 
     def enqueue(self, envelope: dict[str, Any]) -> Path:
+        """Enqueue an envelope and return its durable path.
+
+        Call ``enqueue_with_result`` when the caller must distinguish a newly
+        stored envelope from an idempotent retry.
+        """
+
+        return self.enqueue_with_result(envelope).path
+
+    def enqueue_with_result(self, envelope: dict[str, Any]) -> EnqueueResult:
+        """Atomically enqueue an envelope and report exact duplicate retries."""
+
         batch_id = envelope["batchId"]
         destination = self._directory / f"{batch_id}.json"
         data = self._canonical_json(envelope)
@@ -64,7 +84,7 @@ class EnvelopeSpool:
                     self._quarantine_unlocked(destination, "corrupt_spool_entry", str(error))
                 else:
                     if self._canonical_json(existing) == data:
-                        return destination
+                        return EnqueueResult(destination, duplicate=True)
                     raise DuplicateBatchError("batch ID already exists with different content")
 
             source_instance_id = str(envelope["sourceInstanceId"])
@@ -101,7 +121,7 @@ class EnvelopeSpool:
                 if temporary is not None:
                     temporary.unlink(missing_ok=True)
 
-        return destination
+        return EnqueueResult(destination, duplicate=False)
 
     def items(self) -> list[Path]:
         """Return healthy pending items in source/sequence/batch replay order.

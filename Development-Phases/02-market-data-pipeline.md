@@ -13,8 +13,14 @@
   invariants OHLC.
 - Batch valid disimpan atomik pada durable FIFO spool lokal yang berbatas dan tidak menghapus
   data lama ketika penuh.
-- EA masih hanya mengirim heartbeat. Publisher backend, credential bridge, retry/backoff,
-  checkpoint, tick/account telemetry, dan data MT5 nyata belum diimplementasikan.
+- EA mengirim heartbeat dan satu candle FINAL `EURUSD H1`; alur ini sudah terbukti dengan
+  simulator tetapi belum diverifikasi memakai terminal demo MT5 nyata.
+- Komponen publisher backend, ACK-driven removal, retry/backoff, spool recovery, quarantine,
+  dan structured logging sudah diimplementasikan serta diuji secara terpisah. Publisher belum
+  diaktifkan di runtime receiver dan backend belum memiliki endpoint batch idempotent yang
+  kompatibel.
+- Credential bridge, historical checkpoint/backfill, tick/account telemetry, dan validasi data
+  broker nyata belum diimplementasikan.
 
 ## Tujuan
 

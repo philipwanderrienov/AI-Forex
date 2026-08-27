@@ -16,7 +16,13 @@ from forex_intelligence_bridge.contracts import (
 )
 from forex_intelligence_bridge.health import HeartbeatMonitor
 from forex_intelligence_bridge.observability import configure_logging, get_logger
-from forex_intelligence_bridge.spool import DEFAULT_MAX_BYTES, EnvelopeSpool, SpoolFullError
+from forex_intelligence_bridge.spool import (
+    DEFAULT_MAX_BYTES,
+    DuplicateBatchError,
+    EnvelopeSpool,
+    SequenceConflictError,
+    SpoolFullError,
+)
 
 MAX_BODY_BYTES = 64 * 1024
 LOGGER = get_logger("forex_intelligence_bridge.server")
@@ -104,12 +110,21 @@ class BridgeRequestHandler(BaseHTTPRequestHandler):
             self._send_json(HTTPStatus.SERVICE_UNAVAILABLE, {"error": "spool_unavailable"})
             return
         try:
-            self.spool.enqueue(envelope)
+            enqueue_result = self.spool.enqueue_with_result(envelope)
         except SpoolFullError:
             LOGGER.error("envelope_rejected", extra={"reason": "spool_full", "batchId": envelope["batchId"]})
             self._send_json(HTTPStatus.INSUFFICIENT_STORAGE, {"error": "spool_full"})
             return
-        except ValueError:
+        except DuplicateBatchError:
+            LOGGER.warning("envelope_rejected", extra={"reason": "batch_id_conflict", "batchId": envelope["batchId"]})
+            self._send_json(HTTPStatus.CONFLICT, {"error": "batch_id_conflict"})
+            return
+        except SequenceConflictError:
+            LOGGER.warning("envelope_rejected", extra={"reason": "sequence_conflict", "batchId": envelope["batchId"]})
+            self._send_json(HTTPStatus.CONFLICT, {"error": "sequence_conflict"})
+            return
+
+        if enqueue_result.duplicate:
             LOGGER.info("envelope_duplicate", extra={"batchId": envelope["batchId"]})
             self._send_json(HTTPStatus.ACCEPTED, {"status": "duplicate", "batchId": envelope["batchId"]})
             return

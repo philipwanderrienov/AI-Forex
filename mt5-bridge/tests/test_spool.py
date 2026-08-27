@@ -57,6 +57,18 @@ class EnvelopeSpoolTests(unittest.TestCase):
             self.assertEqual(first_path, duplicate_path)
             self.assertEqual(1, len(spool.items()))
 
+    def test_enqueue_result_distinguishes_new_item_from_exact_duplicate(self):
+        with tempfile.TemporaryDirectory() as directory:
+            spool = EnvelopeSpool(Path(directory))
+            envelope = valid_envelope()
+
+            created = spool.enqueue_with_result(envelope)
+            duplicate = spool.enqueue_with_result(copy.deepcopy(envelope))
+
+            self.assertFalse(created.duplicate)
+            self.assertTrue(duplicate.duplicate)
+            self.assertEqual(created.path, duplicate.path)
+
     def test_conflicting_duplicate_batch_is_rejected_without_overwrite(self):
         with tempfile.TemporaryDirectory() as directory:
             spool = EnvelopeSpool(Path(directory))

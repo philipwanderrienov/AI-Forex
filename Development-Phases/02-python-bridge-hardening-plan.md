@@ -17,11 +17,11 @@ The bridge is ready for real MT5 integration when all simulator-driven positive/
 - [x] Valid heartbeat is accepted.
 - [x] Valid candle envelope is accepted and durably spooled.
 - [x] Simulator happy path is documented/verified.
-- [ ] Multiple valid candle records in one envelope preserve order.
-- [ ] Consecutive envelope sequences are accepted.
-- [ ] Restart reloads pending spool entries in FIFO order.
-- [ ] Replay removes an entry only after downstream acknowledgement.
-- [ ] Health reports healthy terminal and available spool under normal load.
+- [x] Multiple valid candle records in one envelope preserve order.
+- [x] Consecutive envelope sequences are accepted.
+- [x] Restart reloads pending spool entries in FIFO order.
+- [x] Replay removes an entry only after downstream acknowledgement.
+- [x] Health reports healthy terminal and available spool under normal load.
 
 ### Contract and data failures
 
@@ -29,28 +29,28 @@ The bridge is ready for real MT5 integration when all simulator-driven positive/
 - [x] Unsupported schema versions are rejected.
 - [x] Invalid batch/checksum/UTC/decimal/OHLC invariants are rejected by contract validation.
 - [ ] Malformed JSON returns a deterministic client error and does not touch the spool.
-- [ ] Empty records are rejected.
-- [ ] Envelope record limit overflow is rejected.
-- [ ] Unsupported instrument/timeframe/payload type is rejected.
-- [ ] Non-positive candle prices are rejected.
-- [ ] Broker alias mismatch between envelope and records is rejected.
-- [ ] Invalid FINAL candle timing/finality is rejected where contract context permits.
+- [x] Empty records are rejected.
+- [x] Envelope record limit overflow is rejected.
+- [x] Unsupported instrument/timeframe/payload type is rejected.
+- [x] Non-positive candle prices are rejected.
+- [x] Broker alias mismatch between envelope and records is rejected.
+- [x] Invalid FINAL candle timing/finality is rejected where contract context permits.
 
 ### Reliability and operational failures
 
 - [x] Terminal freshness transitions through UNKNOWN/HEALTHY/WARNING/STALE.
 - [x] Spool item/byte capacity and disk availability are observable.
-- [ ] Duplicate batch ID is idempotent and never creates a second pending item.
-- [ ] Duplicate sequence with conflicting batch content is rejected/quarantined.
+- [x] Duplicate batch ID is idempotent and never creates a second pending item.
+- [x] Duplicate sequence with conflicting batch content is rejected/quarantined.
 - [ ] Out-of-order sequence is detected and surfaced.
-- [ ] Spool-full rejection never deletes an older pending entry.
-- [ ] Corrupt spool entry is detected and quarantined rather than silently skipped.
-- [ ] Process restart while entries are pending preserves accepted data.
+- [x] Spool-full rejection never deletes an older pending entry.
+- [x] Corrupt spool entry is detected and quarantined rather than silently skipped.
+- [x] Process restart while entries are pending preserves accepted data.
 - [ ] Graceful shutdown leaves spool in a recoverable state.
-- [ ] Simulated backend timeout keeps the item pending.
-- [ ] Simulated backend 5xx retries with exponential backoff + jitter.
-- [ ] Simulated backend 4xx permanent rejection does not retry forever and is observable.
-- [ ] Successful downstream acknowledgement advances replay/checkpoint exactly once.
+- [x] Simulated backend timeout keeps the item pending.
+- [x] Simulated backend 5xx retries with exponential backoff + jitter.
+- [x] Simulated backend 4xx permanent rejection does not retry forever and is observable.
+- [x] Successful downstream acknowledgement advances replay/checkpoint exactly once.
 
 ## Implementation order
 
