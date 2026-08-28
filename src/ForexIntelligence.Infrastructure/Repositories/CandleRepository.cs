@@ -20,6 +20,23 @@ public sealed class CandleRepository(ForexDbContext dbContext) : ICandleReposito
         long sequence,
         string checksum,
         IReadOnlyCollection<Candle> candles,
+        CancellationToken cancellationToken) =>
+        await StoreBatchAsync(
+            batchId,
+            sourceInstanceId,
+            sequence,
+            checksum,
+            candles,
+            retryAfterConcurrentCandleInsert: true,
+            cancellationToken);
+
+    private async Task<CandleBatchStoreResult> StoreBatchAsync(
+        string batchId,
+        string sourceInstanceId,
+        long sequence,
+        string checksum,
+        IReadOnlyCollection<Candle> candles,
+        bool retryAfterConcurrentCandleInsert,
         CancellationToken cancellationToken)
     {
         var existing = await dbContext.MarketDataBatches
@@ -40,6 +57,32 @@ public sealed class CandleRepository(ForexDbContext dbContext) : ICandleReposito
                     : CandleBatchStoreResult.Conflict;
         }
 
+        var instruments = candles.Select(candle => candle.Instrument).Distinct().ToArray();
+        var timeframes = candles.Select(candle => candle.Timeframe).Distinct().ToArray();
+        var openTimes = candles.Select(candle => candle.OpenTime).Distinct().ToArray();
+        var persistedCandidates = await dbContext.Candles
+            .AsNoTracking()
+            .Where(candle =>
+                instruments.Contains(candle.Instrument) &&
+                timeframes.Contains(candle.Timeframe) &&
+                openTimes.Contains(candle.OpenTime))
+            .ToArrayAsync(cancellationToken);
+        var knownByKey = persistedCandidates.ToDictionary(CandleKey.From);
+        var newCandles = new List<Candle>(candles.Count);
+        foreach (var candle in candles)
+        {
+            var key = CandleKey.From(candle);
+            if (!knownByKey.TryGetValue(key, out var persisted))
+            {
+                newCandles.Add(candle);
+                knownByKey.Add(key, candle);
+            }
+            else if (!HasSameValues(persisted, candle))
+            {
+                return CandleBatchStoreResult.Conflict;
+            }
+        }
+
         await using var transaction = await dbContext.Database.BeginTransactionAsync(cancellationToken);
         dbContext.MarketDataBatches.Add(new MarketDataBatchRecord
         {
@@ -50,7 +93,7 @@ public sealed class CandleRepository(ForexDbContext dbContext) : ICandleReposito
             RecordCount = candles.Count,
             StoredAt = DateTimeOffset.UtcNow
         });
-        dbContext.Candles.AddRange(candles);
+        dbContext.Candles.AddRange(newCandles);
         try
         {
             await dbContext.SaveChangesAsync(cancellationToken);
@@ -67,14 +110,48 @@ public sealed class CandleRepository(ForexDbContext dbContext) : ICandleReposito
                     batch => batch.BatchId == batchId ||
                         (batch.SourceInstanceId == sourceInstanceId && batch.Sequence == sequence),
                     cancellationToken);
-            return concurrent is not null &&
-                concurrent.BatchId == batchId &&
+            if (concurrent is not null)
+            {
+                return concurrent.BatchId == batchId &&
                 concurrent.SourceInstanceId == sourceInstanceId &&
                 concurrent.Sequence == sequence &&
                 concurrent.Checksum == checksum &&
                 concurrent.RecordCount == candles.Count
                     ? CandleBatchStoreResult.Duplicate
                     : CandleBatchStoreResult.Conflict;
+            }
+
+            return retryAfterConcurrentCandleInsert
+                ? await StoreBatchAsync(
+                    batchId,
+                    sourceInstanceId,
+                    sequence,
+                    checksum,
+                    candles,
+                    retryAfterConcurrentCandleInsert: false,
+                    cancellationToken)
+                : CandleBatchStoreResult.Conflict;
         }
+    }
+
+    private static bool HasSameValues(Candle left, Candle right) =>
+        left.Instrument == right.Instrument &&
+        left.Timeframe == right.Timeframe &&
+        left.OpenTime == right.OpenTime &&
+        left.CloseTime == right.CloseTime &&
+        left.Open == right.Open &&
+        left.High == right.High &&
+        left.Low == right.Low &&
+        left.Close == right.Close &&
+        left.TickVolume == right.TickVolume &&
+        left.Status == right.Status;
+
+    private readonly record struct CandleKey(
+        string Instrument,
+        ForexIntelligence.Domain.Enums.Timeframe Timeframe,
+        DateTimeOffset OpenTime)
+    {
+        public static CandleKey From(Candle candle) =>
+            new(candle.Instrument, candle.Timeframe, candle.OpenTime);
     }
 }

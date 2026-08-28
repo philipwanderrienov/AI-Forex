@@ -80,6 +80,28 @@ The earlier Windows bridge-only verification also succeeded: before a producer w
 
 ## Locally verified by Codex
 
+On 2026-08-28, the local PostgreSQL schema was upgraded through EF Core migration
+`20260828044211_AddMarketDataBatches` and passed `database/999-verify-schema.sql`. The existing
+development database had been created under the `postgres` owner rather than the documented
+`forex_app` owner; ownership of the database and its three existing application tables was
+corrected before applying the migration.
+
+The complete local publishing path was then verified with temporary process-only credentials
+and an isolated spool:
+
+- simulator -> Python receiver -> authenticated .NET ingestion -> PostgreSQL stored one valid
+  `EURUSD H1` batch and drained the spool to zero;
+- an identical direct backend retry returned `202 duplicate` and left exactly one batch ledger
+  row;
+- while the .NET API was stopped, a valid batch remained pending at spool depth 1 and was absent
+  from PostgreSQL;
+- after the API restarted, the publisher replayed the pending batch, PostgreSQL stored it, and
+  spool depth returned to zero with no quarantine entry.
+- PostgreSQL batch persistence now accepts identical candle overlap in a new batch, inserts only
+  the missing candles from a mixed overlap/new batch, and rejects overlap whose business values
+  differ. Concurrent batches containing the same new candle both store their ledgers while the
+  canonical candle is stored only once.
+
 On 2026-08-25, the simulator failure/recovery path was verified against a live local bridge using an isolated temporary spool:
 
 - The duplicate scenario returned `202 accepted` for the first envelope and `202 duplicate` for the second; spool depth remained 1.
@@ -98,7 +120,8 @@ On 2026-08-28:
 - `dotnet build ForexIntelligence.sln --no-restore --disable-build-servers -m:1` completed
   successfully with no warnings.
 - `dotnet test ForexIntelligence.sln --no-build --no-restore --disable-build-servers -m:1`
-  completed successfully with 26 tests passing after checksum-mismatch coverage was added.
+  completed successfully with 27 tests passing, including PostgreSQL-backed overlap and
+  concurrent batch persistence coverage.
 
 ## Local soak/load verification
 

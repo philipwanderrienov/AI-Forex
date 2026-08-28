@@ -16,5 +16,11 @@ Tasks are ordered by current priority. Agents should compare `GPT` and `Codex` b
 12. [ ] Apply the new migration and configure the shared bridge API key on the target machines without committing the secret.
 13. [ ] Verify MT5 -> Python spool -> authenticated .NET ingestion -> PostgreSQL, including duplicate ACK and backend outage/recovery.
 14. [x] Add a portable interactive Windows setup script and placeholder configuration template so development secrets can be recreated safely on each laptop.
+15. [x] Define and implement idempotent candle-overlap handling for new batches before adding checkpoint/backfill; cover mixed existing/new candle batches with PostgreSQL integration tests.
+
+Local PostgreSQL migration plus simulator -> bridge -> .NET -> PostgreSQL happy-path,
+duplicate-ACK, and backend outage/recovery verification completed on 2026-08-28. Items 12 and
+13 remain open until the same setup and verification are completed on the actual target
+machines with the real MT5 exporter.
 
 Do not start Python -> .NET publishing merely because it is later in Phase 02; finish and verify the MT5/Python acquisition boundary first.

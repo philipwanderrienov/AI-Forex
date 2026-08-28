@@ -17,11 +17,12 @@
   Alur `EURUSD H1` sudah diverifikasi memakai terminal demo MT5 nyata; kombinasi lainnya
   sudah lolos validasi kontrak melalui simulator tetapi belum diverifikasi di terminal nyata.
 - Komponen publisher backend, ACK-driven removal, retry/backoff, spool recovery, quarantine,
-  dan structured logging sudah diimplementasikan serta diuji secara terpisah. Publisher belum
-  diaktifkan di runtime receiver dan backend belum memiliki endpoint batch idempotent yang
-  kompatibel.
-- Credential bridge, historical checkpoint/backfill, tick/account telemetry, dan validasi data
-  broker nyata belum diimplementasikan.
+  dan structured logging sudah diimplementasikan dan terhubung ke runtime receiver melalui
+  konfigurasi opt-in. Backend menyediakan endpoint batch terautentikasi dan idempotent dengan
+  persistence PostgreSQL transaksional; alur lokal termasuk outage/recovery sudah diverifikasi.
+- Credential bridge dapat dikonfigurasi melalui environment dan .NET User Secrets, tetapi
+  pemasangan credential pada mesin target belum diverifikasi. Historical checkpoint/backfill,
+  tick/account telemetry, dan validasi seluruh matriks data broker nyata belum diimplementasikan.
 
 ## Tujuan
 
