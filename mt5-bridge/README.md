@@ -57,6 +57,14 @@ Menjalankan test:
 PYTHONPATH=src python -m unittest discover -s tests
 ```
 
+Menjalankan simulator untuk satu candle `EURUSD H1`, atau seluruh matriks canonical
+5 instrumen x 3 timeframe:
+
+```bash
+PYTHONPATH=src python tools/mt5_simulator.py --once
+PYTHONPATH=src python tools/mt5_simulator.py --matrix
+```
+
 Menjalankan bounded local soak/load verification (500 envelope dan duplicate setiap 10
 envelope, menggunakan spool sementara yang otomatis dibersihkan):
 

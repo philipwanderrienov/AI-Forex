@@ -1,6 +1,6 @@
 # Current Development Status
 
-Last updated: 2026-08-27
+Last updated: 2026-08-28
 Owning branch for this update: `Codex`
 
 ## Current focus
@@ -17,8 +17,10 @@ Phase 02 market-data acquisition. Development is intentionally focused on the MT
 - Durable FIFO spool includes duplicate protection, item/byte capacity limits, and disk-free monitoring.
 - Unit tests exist for contracts, health, server, and spool.
 - MQL5 exporter on the GPT lineage has been upgraded from heartbeat-only to a first real `EURUSD H1` FINAL-candle export using `CopyRates`, posting to `/v1/mt5/envelopes`.
-- Development-only `mt5-bridge/tools/mt5_simulator.py` sends the same heartbeat and `EURUSD H1` candle contracts as the real exporter using only Python standard-library dependencies.
-- Simulator supports continuous heartbeat, `--once`, duplicate-batch, invalid-OHLC, and disconnect scenarios.
+- Development-only `mt5-bridge/tools/mt5_simulator.py` sends the same heartbeat and candle
+  contracts as the real exporter using only Python standard-library dependencies.
+- Simulator supports continuous heartbeat, `--once`, all 15 canonical instrument/timeframe
+  combinations through `--matrix`, duplicate-batch, invalid-OHLC, and disconnect scenarios.
 - Simulator payload generation is covered by unit tests for heartbeat and valid H1 contracts, ULID shape, reusable duplicate batch IDs, and invalid-OHLC rejection with a valid checksum.
 - Durable spool recovery, exact-duplicate detection, batch/sequence conflict detection, corrupt-entry quarantine, and permanent backend rejection quarantine are implemented.
 - A backend publisher component supports ACK-driven removal and bounded retry with exponential backoff and jitter. It is unit-tested but not yet wired into the bridge runtime or a compatible .NET batch-ingestion endpoint.
@@ -74,7 +76,9 @@ The temporary bridge process was stopped and its isolated test spool was removed
 
 On 2026-08-27:
 
-- `PYTHONPATH=src python3 -m unittest discover -s tests -v` completed successfully with 70 tests passing from `mt5-bridge/` after the enqueue and HTTP/1.1 regressions were covered.
+- `PYTHONPATH=src python -m unittest discover -s tests -v` completed successfully with 74
+  tests passing from `mt5-bridge/`, including contract validation for all 15 exporter
+  instrument/timeframe combinations.
 - `dotnet restore ForexIntelligence.sln`, `dotnet build ForexIntelligence.sln --no-restore`, and `dotnet test ForexIntelligence.sln --no-build --no-restore` completed successfully with 21 tests passing and no build warnings.
 - `dotnet format ForexIntelligence.sln --verify-no-changes --no-restore` completed successfully.
 

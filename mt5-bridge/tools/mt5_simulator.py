@@ -19,6 +19,15 @@ from datetime import datetime, timedelta, timezone
 BRIDGE_URL = "http://127.0.0.1:8001"
 SOURCE_INSTANCE_ID = "mt5-simulator-local"
 BROKER_SERVER_ALIAS = "demo-simulator"
+CANONICAL_INSTRUMENTS = ("EURUSD", "GBPUSD", "EURGBP", "EURCHF", "XAUUSD")
+TIMEFRAME_MINUTES = {"M15": 15, "H1": 60, "H4": 240}
+PRICE_FIXTURES = {
+    "EURUSD": ("1.17000", "1.17250", "1.16950", "1.17180"),
+    "GBPUSD": ("1.35000", "1.35400", "1.34800", "1.35250"),
+    "EURGBP": ("0.86500", "0.86700", "0.86400", "0.86620"),
+    "EURCHF": ("0.93000", "0.93200", "0.92900", "0.93120"),
+    "XAUUSD": ("3400.00", "3412.50", "3395.00", "3408.20"),
+}
 
 
 def utc_iso(value: datetime) -> str:
@@ -60,23 +69,40 @@ def heartbeat() -> dict[str, object]:
     }
 
 
-def final_h1_record(*, invalid_ohlc: bool = False) -> dict[str, object]:
-    now = datetime.now(timezone.utc).replace(minute=0, second=0, microsecond=0)
-    open_time = now - timedelta(hours=1)
-    close_time = now
+def final_candle_record(
+    instrument: str = "EURUSD",
+    timeframe: str = "H1",
+    *,
+    invalid_ohlc: bool = False,
+) -> dict[str, object]:
+    if instrument not in CANONICAL_INSTRUMENTS:
+        raise ValueError(f"unsupported canonical instrument: {instrument}")
+    if timeframe not in TIMEFRAME_MINUTES:
+        raise ValueError(f"unsupported canonical timeframe: {timeframe}")
+
+    duration_minutes = TIMEFRAME_MINUTES[timeframe]
+    duration = timedelta(minutes=duration_minutes)
+    now = datetime.now(timezone.utc).replace(second=0, microsecond=0)
+    boundary_seconds = duration_minutes * 60
+    close_time = datetime.fromtimestamp(
+        int(now.timestamp()) // boundary_seconds * boundary_seconds,
+        timezone.utc,
+    )
+    open_time = close_time - duration
+    open_price, high_price, low_price, close_price = PRICE_FIXTURES[instrument]
     record: dict[str, object] = {
         "schemaVersion": "candle.v1",
         "source": "MT5",
         "brokerServerAlias": BROKER_SERVER_ALIAS,
-        "brokerSymbol": "EURUSD",
-        "instrument": "EURUSD",
-        "timeframe": "H1",
+        "brokerSymbol": instrument,
+        "instrument": instrument,
+        "timeframe": timeframe,
         "openTime": utc_iso(open_time),
         "closeTime": utc_iso(close_time),
-        "open": "1.17000",
-        "high": "1.17250",
-        "low": "1.16950",
-        "close": "1.17180",
+        "open": open_price,
+        "high": high_price,
+        "low": low_price,
+        "close": close_price,
         "tickVolume": 1524,
         "status": "FINAL",
         "receivedAt": utc_iso(datetime.now(timezone.utc)),
@@ -87,8 +113,19 @@ def final_h1_record(*, invalid_ohlc: bool = False) -> dict[str, object]:
     return record
 
 
-def candle_envelope(sequence: int, *, invalid_ohlc: bool = False, batch_id: str | None = None) -> dict[str, object]:
-    record = final_h1_record(invalid_ohlc=invalid_ohlc)
+def final_h1_record(*, invalid_ohlc: bool = False) -> dict[str, object]:
+    return final_candle_record(invalid_ohlc=invalid_ohlc)
+
+
+def candle_envelope(
+    sequence: int,
+    *,
+    instrument: str = "EURUSD",
+    timeframe: str = "H1",
+    invalid_ohlc: bool = False,
+    batch_id: str | None = None,
+) -> dict[str, object]:
+    record = final_candle_record(instrument, timeframe, invalid_ohlc=invalid_ohlc)
     records = [record]
     return {
         "schemaVersion": "mt5-envelope.v1",
@@ -112,6 +149,19 @@ def send(label: str, path: str, payload: dict[str, object]) -> int:
 def run_once() -> None:
     send("HEARTBEAT", "/v1/mt5/heartbeat", heartbeat())
     send("EURUSD H1 FINAL", "/v1/mt5/envelopes", candle_envelope(1))
+
+
+def run_matrix() -> None:
+    send("HEARTBEAT", "/v1/mt5/heartbeat", heartbeat())
+    sequence = 0
+    for instrument in CANONICAL_INSTRUMENTS:
+        for timeframe in TIMEFRAME_MINUTES:
+            sequence += 1
+            send(
+                f"{instrument} {timeframe} FINAL",
+                "/v1/mt5/envelopes",
+                candle_envelope(sequence, instrument=instrument, timeframe=timeframe),
+            )
 
 
 def run_duplicate() -> None:
@@ -152,6 +202,11 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="Simulate MT5 heartbeat and EURUSD H1 candle delivery.")
     parser.add_argument("--once", action="store_true", help="Send one heartbeat and one valid final H1 candle.")
     parser.add_argument(
+        "--matrix",
+        action="store_true",
+        help="Send one valid FINAL candle for all five instruments and three timeframes.",
+    )
+    parser.add_argument(
         "--scenario",
         choices=("duplicate", "invalid-ohlc", "disconnect"),
         help="Run a focused failure/recovery scenario.",
@@ -166,6 +221,8 @@ def main() -> None:
     try:
         if args.once:
             run_once()
+        elif args.matrix:
+            run_matrix()
         elif args.scenario == "duplicate":
             run_duplicate()
         elif args.scenario == "invalid-ohlc":

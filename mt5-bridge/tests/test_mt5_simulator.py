@@ -26,6 +26,39 @@ class Mt5SimulatorPayloadTests(unittest.TestCase):
         self.assertEqual("H1", payload["records"][0]["timeframe"])
         self.assertEqual("FINAL", payload["records"][0]["status"])
 
+    def test_all_exporter_instrument_timeframe_combinations_use_bridge_contract(self) -> None:
+        sequence = 0
+        for instrument in mt5_simulator.CANONICAL_INSTRUMENTS:
+            for timeframe in mt5_simulator.TIMEFRAME_MINUTES:
+                sequence += 1
+                with self.subTest(instrument=instrument, timeframe=timeframe):
+                    payload = mt5_simulator.candle_envelope(
+                        sequence,
+                        instrument=instrument,
+                        timeframe=timeframe,
+                    )
+
+                    self.assertIs(payload, validate_candle_envelope(payload))
+                    record = payload["records"][0]
+                    self.assertEqual(instrument, record["instrument"])
+                    self.assertEqual(instrument, record["brokerSymbol"])
+                    self.assertEqual(timeframe, record["timeframe"])
+                    close_hour = int(record["closeTime"][11:13])
+                    close_minute = int(record["closeTime"][14:16])
+                    if timeframe == "M15":
+                        self.assertEqual(0, close_minute % 15)
+                    elif timeframe == "H1":
+                        self.assertEqual(0, close_minute)
+                    else:
+                        self.assertEqual(0, close_minute)
+                        self.assertEqual(0, close_hour % 4)
+
+    def test_unsupported_instrument_and_timeframe_are_rejected_locally(self) -> None:
+        with self.assertRaisesRegex(ValueError, "unsupported canonical instrument"):
+            mt5_simulator.candle_envelope(1, instrument="USDJPY")
+        with self.assertRaisesRegex(ValueError, "unsupported canonical timeframe"):
+            mt5_simulator.candle_envelope(1, timeframe="M5")
+
     def test_batch_id_is_a_valid_ulid_shape(self) -> None:
         batch_id = mt5_simulator.random_ulid()
 

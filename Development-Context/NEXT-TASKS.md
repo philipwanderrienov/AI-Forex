@@ -10,7 +10,8 @@ Tasks are ordered by current priority. Agents should compare `GPT` and `Codex` b
 6. [x] Harden the durable spool with restart recovery, idempotency/sequence conflict handling, quarantine, ACK-driven publisher behavior, retry/backoff, and structured secret-safe logging tests.
 7. [x] Run and record a bounded local soak/load simulation of receiver, spool, replay, and recovery behavior.
 8. [x] Replace the simulator with the real MQL5 exporter and verify the first EURUSD H1 FINAL candle through Python validation and durable spool on the demo terminal.
-9. [ ] Only after that milestone succeeds, expand exporter coverage to M15/H1/H4 and then the five canonical instruments.
-10. [ ] After the MT5/Python boundary is proven, add a compatible idempotent .NET batch-ingestion endpoint, machine authentication, and wire the tested publisher into the bridge runtime.
+9. [x] Expand exporter and simulator contract coverage to M15/H1/H4 and the five canonical instruments.
+10. [ ] Verify all 15 instrument/timeframe combinations on the real demo terminal, then verify disconnect, restart, and recovery behavior.
+11. [ ] After the MT5/Python boundary is proven, add a compatible idempotent .NET batch-ingestion endpoint, machine authentication, and wire the tested publisher into the bridge runtime.
 
 Do not start Python -> .NET publishing merely because it is later in Phase 02; finish and verify the MT5/Python acquisition boundary first.
