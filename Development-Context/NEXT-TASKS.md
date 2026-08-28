@@ -15,5 +15,6 @@ Tasks are ordered by current priority. Agents should compare `GPT` and `Codex` b
 11. [x] Add a compatible idempotent .NET batch-ingestion endpoint, machine authentication, PostgreSQL batch ledger, and wire the tested publisher into the bridge runtime.
 12. [ ] Apply the new migration and configure the shared bridge API key on the target machines without committing the secret.
 13. [ ] Verify MT5 -> Python spool -> authenticated .NET ingestion -> PostgreSQL, including duplicate ACK and backend outage/recovery.
+14. [x] Add a portable interactive Windows setup script and placeholder configuration template so development secrets can be recreated safely on each laptop.
 
 Do not start Python -> .NET publishing merely because it is later in Phase 02; finish and verify the MT5/Python acquisition boundary first.

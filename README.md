@@ -72,6 +72,17 @@ BootstrapUser__Role=ADMIN
 BridgeAuthentication__ApiKey=<minimal-32-byte-random-secret>
 ```
 
+Pada laptop development Windows baru, jalankan setup interaktif berikut dari root repository:
+
+```powershell
+.\scripts\setup-development.ps1
+```
+
+Script meminta password database dan admin tanpa menampilkannya, membuat JWT/API key random,
+menyimpan semuanya ke .NET User Secrets, lalu menampilkan bridge API key satu kali agar dapat
+disimpan di password manager dan dipasang pada laptop server. Struktur konfigurasi tanpa nilai
+rahasia tersedia di `src/ForexIntelligence.Api/appsettings.Development.example.json`.
+
 Endpoint bridge hanya menerima header `X-Bridge-Api-Key`. Nilainya harus sama dengan
 `MT5_BRIDGE_BACKEND_API_KEY` pada laptop server dan tidak boleh dipakai sebagai JWT pengguna.
 

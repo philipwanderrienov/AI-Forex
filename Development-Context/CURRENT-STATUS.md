@@ -36,6 +36,11 @@ move development into authenticated .NET ingestion and PostgreSQL persistence.
   persistence.
 - EF Core migration `AddMarketDataBatches` and matching directly executable DBeaver schema
   updates add the `market_data_batches` idempotency ledger.
+- `scripts/setup-development.ps1` provides a portable interactive setup for new Windows
+  development laptops. It stores database/JWT/bootstrap/bridge values in .NET User Secrets,
+  generates random JWT and bridge keys, and never writes actual secrets into the repository.
+- `appsettings.Development.example.json` documents the complete development configuration
+  shape using placeholders only.
 - Structured JSON logging and recursive secret redaction are implemented.
 - The receiver returns `202 duplicate` for an identical retry, `409 batch_id_conflict` for conflicting batch reuse, `409 sequence_conflict` for conflicting source sequence reuse, and `507 spool_full` when capacity is exhausted.
 - The MQL5 exporter formats heartbeat and candle timestamps as canonical ISO-8601 UTC (`YYYY-MM-DDTHH:MM:SSZ`) rather than the dotted display format returned by `TimeToString`.
