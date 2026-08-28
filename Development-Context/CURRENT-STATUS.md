@@ -22,6 +22,8 @@ move development into authenticated .NET ingestion and PostgreSQL persistence.
   contracts as the real exporter using only Python standard-library dependencies.
 - Simulator supports continuous heartbeat, `--once`, all 15 canonical instrument/timeframe
   combinations through `--matrix`, duplicate-batch, invalid-OHLC, and disconnect scenarios.
+- Simulator accepts `--sequence-start` so repeated runs against a persistent backend ledger can
+  continue the stable source instance sequence instead of producing a deliberate sequence conflict.
 - Simulator payload generation is covered by unit tests for heartbeat and valid H1 contracts, ULID shape, reusable duplicate batch IDs, and invalid-OHLC rejection with a valid checksum.
 - Durable spool recovery, exact-duplicate detection, batch/sequence conflict detection, corrupt-entry quarantine, and permanent backend rejection quarantine are implemented.
 - The Python backend publisher is wired into the bridge runtime through opt-in environment
@@ -98,6 +100,9 @@ and an isolated spool:
   from PostgreSQL;
 - after the API restarted, the publisher replayed the pending batch, PostgreSQL stored it, and
   spool depth returned to zero with no quarantine entry.
+- after configuring development secrets through the macOS setup, a repeated live local simulator
+  run with source sequence 2 reached PostgreSQL successfully; the ledger contains sequences 1 and
+  2 for `mt5-simulator-local`, terminal health was `HEALTHY`, and active spool depth returned to 0.
 - PostgreSQL batch persistence now accepts identical candle overlap in a new batch, inserts only
   the missing candles from a mixed overlap/new batch, and rejects overlap whose business values
   differ. Concurrent batches containing the same new candle both store their ledgers while the

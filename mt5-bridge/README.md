@@ -73,6 +73,14 @@ PYTHONPATH=src python tools/mt5_simulator.py --once
 PYTHONPATH=src python tools/mt5_simulator.py --matrix
 ```
 
+Simulator memakai source instance yang stabil. Jika backend PostgreSQL yang sama sudah pernah
+menerima sequence tersebut, lanjutkan dari sequence berikutnya agar pengiriman baru tidak dianggap
+konflik, misalnya:
+
+```bash
+PYTHONPATH=src python tools/mt5_simulator.py --once --sequence-start 2
+```
+
 Menjalankan bounded local soak/load verification (500 envelope dan duplicate setiap 10
 envelope, menggunakan spool sementara yang otomatis dibersihkan):
 

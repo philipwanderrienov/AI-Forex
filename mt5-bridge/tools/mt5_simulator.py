@@ -146,35 +146,39 @@ def send(label: str, path: str, payload: dict[str, object]) -> int:
     return status
 
 
-def run_once() -> None:
+def run_once(sequence_start: int = 1) -> None:
     send("HEARTBEAT", "/v1/mt5/heartbeat", heartbeat())
-    send("EURUSD H1 FINAL", "/v1/mt5/envelopes", candle_envelope(1))
+    send("EURUSD H1 FINAL", "/v1/mt5/envelopes", candle_envelope(sequence_start))
 
 
-def run_matrix() -> None:
+def run_matrix(sequence_start: int = 1) -> None:
     send("HEARTBEAT", "/v1/mt5/heartbeat", heartbeat())
-    sequence = 0
+    sequence = sequence_start
     for instrument in CANONICAL_INSTRUMENTS:
         for timeframe in TIMEFRAME_MINUTES:
-            sequence += 1
             send(
                 f"{instrument} {timeframe} FINAL",
                 "/v1/mt5/envelopes",
                 candle_envelope(sequence, instrument=instrument, timeframe=timeframe),
             )
+            sequence += 1
 
 
-def run_duplicate() -> None:
+def run_duplicate(sequence_start: int = 1) -> None:
     send("HEARTBEAT", "/v1/mt5/heartbeat", heartbeat())
     batch_id = random_ulid()
-    envelope = candle_envelope(1, batch_id=batch_id)
+    envelope = candle_envelope(sequence_start, batch_id=batch_id)
     send("CANDLE FIRST", "/v1/mt5/envelopes", envelope)
     send("CANDLE DUPLICATE", "/v1/mt5/envelopes", envelope)
 
 
-def run_invalid_ohlc() -> None:
+def run_invalid_ohlc(sequence_start: int = 1) -> None:
     send("HEARTBEAT", "/v1/mt5/heartbeat", heartbeat())
-    send("INVALID OHLC", "/v1/mt5/envelopes", candle_envelope(1, invalid_ohlc=True))
+    send(
+        "INVALID OHLC",
+        "/v1/mt5/envelopes",
+        candle_envelope(sequence_start, invalid_ohlc=True),
+    )
 
 
 def run_disconnect(seconds: int) -> None:
@@ -184,15 +188,15 @@ def run_disconnect(seconds: int) -> None:
     print("Disconnect simulation finished. Check GET /health.")
 
 
-def run_continuous(interval: int) -> None:
-    sequence = 0
+def run_continuous(interval: int, sequence_start: int = 1) -> None:
+    sequence = sequence_start
     print(f"MT5 simulator -> {BRIDGE_URL}. Ctrl+C to stop.")
     try:
         while True:
             send("HEARTBEAT", "/v1/mt5/heartbeat", heartbeat())
-            if sequence == 0:
-                sequence += 1
+            if sequence == sequence_start:
                 send("EURUSD H1 FINAL", "/v1/mt5/envelopes", candle_envelope(sequence))
+                sequence += 1
             time.sleep(interval)
     except KeyboardInterrupt:
         print("\nMT5 simulator stopped.")
@@ -213,24 +217,30 @@ def main() -> None:
     )
     parser.add_argument("--interval", type=int, default=1, help="Heartbeat interval for continuous mode (seconds).")
     parser.add_argument("--disconnect-seconds", type=int, default=15, help="Pause duration for disconnect scenario.")
+    parser.add_argument(
+        "--sequence-start",
+        type=int,
+        default=1,
+        help="First source sequence to send; increase it when reusing a persistent backend ledger.",
+    )
     args = parser.parse_args()
 
-    if args.interval < 1 or args.disconnect_seconds < 1:
-        parser.error("interval values must be at least 1 second")
+    if args.interval < 1 or args.disconnect_seconds < 1 or args.sequence_start < 1:
+        parser.error("interval and sequence values must be at least 1")
 
     try:
         if args.once:
-            run_once()
+            run_once(args.sequence_start)
         elif args.matrix:
-            run_matrix()
+            run_matrix(args.sequence_start)
         elif args.scenario == "duplicate":
-            run_duplicate()
+            run_duplicate(args.sequence_start)
         elif args.scenario == "invalid-ohlc":
-            run_invalid_ohlc()
+            run_invalid_ohlc(args.sequence_start)
         elif args.scenario == "disconnect":
             run_disconnect(args.disconnect_seconds)
         else:
-            run_continuous(args.interval)
+            run_continuous(args.interval, args.sequence_start)
     except RuntimeError as error:
         parser.exit(1, f"ERROR: {error}\n")
 

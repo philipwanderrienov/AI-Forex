@@ -1,5 +1,6 @@
 import re
 import unittest
+from unittest.mock import patch
 
 from forex_intelligence_bridge.contracts import (
     ContractValidationError,
@@ -72,6 +73,13 @@ class Mt5SimulatorPayloadTests(unittest.TestCase):
 
         self.assertEqual(batch_id, first["batchId"])
         self.assertEqual(batch_id, duplicate["batchId"])
+
+    def test_once_scenario_uses_configured_start_sequence(self) -> None:
+        with patch.object(mt5_simulator, "send") as send:
+            mt5_simulator.run_once(42)
+
+        envelope = send.call_args_list[1].args[2]
+        self.assertEqual(42, envelope["sequence"])
 
     def test_invalid_ohlc_scenario_has_valid_checksum_and_fails_ohlc_rule(self) -> None:
         payload = mt5_simulator.candle_envelope(1, invalid_ohlc=True)
