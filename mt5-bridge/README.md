@@ -48,6 +48,14 @@ MT5_BRIDGE_SPOOL_MAX_ITEMS=10000
 MT5_BRIDGE_SPOOL_MAX_BYTES=268435456
 ```
 
+Untuk mengaktifkan replay ke endpoint ingestion .NET:
+
+```text
+MT5_BRIDGE_BACKEND_URL=http://127.0.0.1:5000/api/v1/bridge/candle-batches
+MT5_BRIDGE_BACKEND_API_KEY=<secret minimal 32 byte yang sama dengan konfigurasi .NET>
+MT5_BRIDGE_REPLAY_INTERVAL_SECONDS=1
+```
+
 Saat kapasitas penuh, bridge menolak batch baru dengan HTTP `507` dan tidak menghapus batch
 lama secara diam-diam. File spool diberi permission `0600` dan direplay menurut sequence.
 

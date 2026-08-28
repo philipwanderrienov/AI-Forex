@@ -1,3 +1,4 @@
+using ForexIntelligence.Application.Interfaces.Repositories;
 using ForexIntelligence.Domain.Entities;
 using ForexIntelligence.Domain.Enums;
 using ForexIntelligence.Infrastructure.Data;
@@ -49,5 +50,37 @@ public sealed class PostgreSqlPersistenceTests
         Assert.Equal("EURUSD", storedCandle.Instrument);
         Assert.Equal(CandleStatus.Final, storedCandle.Status);
         Assert.Equal(1.1010m, storedCandle.Close);
+
+        var batchCandle = Candle.Create(
+            "GBPUSD",
+            Timeframe.M15,
+            openTime.AddMinutes(-15),
+            openTime,
+            1.3500m,
+            1.3540m,
+            1.3480m,
+            1.3525m,
+            456,
+            CandleStatus.Final);
+        var batchId = "01" + Guid.NewGuid().ToString("N", null)[..24];
+        var sourceInstanceId = "postgres-integration-test-" + Guid.NewGuid().ToString("N", null);
+
+        var first = await repository.StoreBatchAsync(
+            batchId,
+            sourceInstanceId,
+            1,
+            "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            [batchCandle],
+            CancellationToken.None);
+        var duplicate = await repository.StoreBatchAsync(
+            batchId,
+            sourceInstanceId,
+            1,
+            "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            [batchCandle],
+            CancellationToken.None);
+
+        Assert.Equal(CandleBatchStoreResult.Stored, first);
+        Assert.Equal(CandleBatchStoreResult.Duplicate, duplicate);
     }
 }

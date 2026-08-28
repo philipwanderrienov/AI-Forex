@@ -28,4 +28,49 @@ public sealed class MarketDataService(ICandleRepository candleRepository) : IMar
         await candleRepository.AddAsync(candle, cancellationToken);
         return candle.Id;
     }
+
+    public async Task<BatchIngestionResult> IngestBatchAsync(
+        IngestCandleBatchRequest request,
+        CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+        ArgumentException.ThrowIfNullOrWhiteSpace(request.BatchId);
+        ArgumentException.ThrowIfNullOrWhiteSpace(request.SourceInstanceId);
+        ArgumentException.ThrowIfNullOrWhiteSpace(request.Checksum);
+
+        if (request.Sequence < 0 || request.Records.Count is < 1 or > 100)
+        {
+            throw new ArgumentException("Batch sequence atau jumlah record tidak valid.", nameof(request));
+        }
+
+        var candles = request.Records
+            .Select(record => Candle.Create(
+                record.Instrument,
+                record.Timeframe,
+                record.OpenTime,
+                record.CloseTime,
+                record.Open,
+                record.High,
+                record.Low,
+                record.Close,
+                record.TickVolume,
+                record.Status))
+            .ToArray();
+
+        var storeResult = await candleRepository.StoreBatchAsync(
+            request.BatchId,
+            request.SourceInstanceId,
+            request.Sequence,
+            request.Checksum,
+            candles,
+            cancellationToken);
+
+        var status = storeResult switch
+        {
+            CandleBatchStoreResult.Stored => BatchIngestionStatus.Accepted,
+            CandleBatchStoreResult.Duplicate => BatchIngestionStatus.Duplicate,
+            _ => BatchIngestionStatus.Conflict
+        };
+        return new BatchIngestionResult(status, request.BatchId, status == BatchIngestionStatus.Accepted ? candles.Length : 0);
+    }
 }

@@ -18,6 +18,12 @@ BEGIN
             WHERE "MigrationId" = '20260819063605_AddRefreshTokens') THEN
             missing_items := array_append(missing_items, 'AddRefreshTokens migration record');
         END IF;
+
+        IF NOT EXISTS (
+            SELECT 1 FROM "__EFMigrationsHistory"
+            WHERE "MigrationId" = '20260828044211_AddMarketDataBatches') THEN
+            missing_items := array_append(missing_items, 'AddMarketDataBatches migration record');
+        END IF;
     END IF;
 
     IF to_regclass('public.candles') IS NULL THEN
@@ -26,6 +32,10 @@ BEGIN
 
     IF to_regclass('public.refresh_tokens') IS NULL THEN
         missing_items := array_append(missing_items, 'refresh_tokens table');
+    END IF;
+
+    IF to_regclass('public.market_data_batches') IS NULL THEN
+        missing_items := array_append(missing_items, 'market_data_batches table');
     END IF;
 
     IF to_regclass('public."IX_candles_Instrument_Timeframe_OpenTime"') IS NULL THEN
@@ -38,6 +48,10 @@ BEGIN
 
     IF to_regclass('public."IX_refresh_tokens_FamilyId_ExpiresAt"') IS NULL THEN
         missing_items := array_append(missing_items, 'refresh token family index');
+    END IF;
+
+    IF to_regclass('public."IX_market_data_batches_SourceInstanceId_Sequence"') IS NULL THEN
+        missing_items := array_append(missing_items, 'market data batch sequence index');
     END IF;
 
     IF cardinality(missing_items) > 0 THEN
@@ -57,11 +71,11 @@ ORDER BY "MigrationId";
 SELECT schemaname, tablename, tableowner
 FROM pg_tables
 WHERE schemaname = 'public'
-  AND tablename IN ('candles', 'refresh_tokens')
+  AND tablename IN ('candles', 'market_data_batches', 'refresh_tokens')
 ORDER BY tablename;
 
 SELECT schemaname, tablename, indexname
 FROM pg_indexes
 WHERE schemaname = 'public'
-  AND tablename IN ('candles', 'refresh_tokens')
+  AND tablename IN ('candles', 'market_data_batches', 'refresh_tokens')
 ORDER BY tablename, indexname;

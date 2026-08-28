@@ -5,7 +5,8 @@ Owning branch for this update: `Codex`
 
 ## Current focus
 
-Phase 02 market-data acquisition. Development is intentionally focused on the MT5/MQL5 exporter and Python bridge before moving into .NET ingestion.
+Phase 02 market-data acquisition. The MT5/Python acquisition boundary is complete enough to
+move development into authenticated .NET ingestion and PostgreSQL persistence.
 
 ## Implemented
 
@@ -23,7 +24,15 @@ Phase 02 market-data acquisition. Development is intentionally focused on the MT
   combinations through `--matrix`, duplicate-batch, invalid-OHLC, and disconnect scenarios.
 - Simulator payload generation is covered by unit tests for heartbeat and valid H1 contracts, ULID shape, reusable duplicate batch IDs, and invalid-OHLC rejection with a valid checksum.
 - Durable spool recovery, exact-duplicate detection, batch/sequence conflict detection, corrupt-entry quarantine, and permanent backend rejection quarantine are implemented.
-- A backend publisher component supports ACK-driven removal and bounded retry with exponential backoff and jitter. It is unit-tested but not yet wired into the bridge runtime or a compatible .NET batch-ingestion endpoint.
+- The Python backend publisher is wired into the bridge runtime through opt-in environment
+  configuration. It sends the machine API key, removes spool items only after a 2xx ACK,
+  retries transient failures, and quarantines permanent backend rejection.
+- ASP.NET Core exposes authenticated `POST /api/v1/bridge/candle-batches` ingestion using a
+  dedicated API-key scheme. Accepted envelopes persist their candles and idempotency ledger
+  in one PostgreSQL transaction. Identical retries return `duplicate`; conflicting batch or
+  source-sequence reuse returns HTTP 409.
+- EF Core migration `AddMarketDataBatches` and matching directly executable DBeaver schema
+  updates add the `market_data_batches` idempotency ledger.
 - Structured JSON logging and recursive secret redaction are implemented.
 - The receiver returns `202 duplicate` for an identical retry, `409 batch_id_conflict` for conflicting batch reuse, `409 sequence_conflict` for conflicting source sequence reuse, and `507 spool_full` when capacity is exhausted.
 - The MQL5 exporter formats heartbeat and candle timestamps as canonical ISO-8601 UTC (`YYYY-MM-DDTHH:MM:SSZ`) rather than the dotted display format returned by `TimeToString`.
@@ -74,13 +83,14 @@ The temporary bridge process was stopped and its isolated test spool was removed
 
 ## Latest automated verification
 
-On 2026-08-27:
+On 2026-08-28:
 
-- `PYTHONPATH=src python -m unittest discover -s tests -v` completed successfully with 74
-  tests passing from `mt5-bridge/`, including contract validation for all 15 exporter
-  instrument/timeframe combinations.
-- `dotnet restore ForexIntelligence.sln`, `dotnet build ForexIntelligence.sln --no-restore`, and `dotnet test ForexIntelligence.sln --no-build --no-restore` completed successfully with 21 tests passing and no build warnings.
-- `dotnet format ForexIntelligence.sln --verify-no-changes --no-restore` completed successfully.
+- `PYTHONPATH=src python -m unittest discover -s tests -v` completed successfully with 76
+  tests, including machine API-key delivery and validation.
+- `dotnet build ForexIntelligence.sln --no-restore --disable-build-servers -m:1` completed
+  successfully with no warnings.
+- `dotnet test ForexIntelligence.sln --no-build --no-restore --disable-build-servers -m:1`
+  completed successfully with 25 tests passing.
 
 ## Local soak/load verification
 
@@ -97,6 +107,6 @@ The temporary server was stopped and its spool was automatically removed after v
 
 ## Not yet verified
 
-- Real M15/H4 export and the remaining canonical instruments.
-- Real terminal/bridge disconnect, restart, and recovery behavior.
-- The publisher is not connected to the bridge runtime, machine authentication, or a compatible idempotent .NET batch-ingestion endpoint.
+- Apply migration `20260828044211_AddMarketDataBatches` to the target PostgreSQL database.
+- Run a real end-to-end MT5 -> Python spool -> .NET -> PostgreSQL verification on the target machines.
+- Verify concurrent duplicate delivery and backend outage/recovery against real PostgreSQL.

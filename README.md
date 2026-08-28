@@ -55,6 +55,7 @@ GET /health/live
 GET /health/ready
 GET /openapi/v1.json   (development)
 POST /api/market-data/candles
+POST /api/v1/bridge/candle-batches
 POST /api/auth/login
 POST /api/auth/refresh
 POST /api/auth/revoke
@@ -68,7 +69,11 @@ Jwt__SigningKey=<minimal-32-byte-random-secret>
 BootstrapUser__Username=<username>
 BootstrapUser__PasswordHash=<pbkdf2-sha256-hash>
 BootstrapUser__Role=ADMIN
+BridgeAuthentication__ApiKey=<minimal-32-byte-random-secret>
 ```
+
+Endpoint bridge hanya menerima header `X-Bridge-Api-Key`. Nilainya harus sama dengan
+`MT5_BRIDGE_BACKEND_API_KEY` pada laptop server dan tidak boleh dipakai sebagai JWT pengguna.
 
 Jangan masukkan nilai konfigurasi tersebut ke `appsettings*.json` atau source control.
 Password bootstrap disimpan sebagai PBKDF2-SHA256 hash; API tidak menerima konfigurasi

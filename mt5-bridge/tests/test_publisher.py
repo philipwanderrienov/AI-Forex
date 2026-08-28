@@ -2,8 +2,10 @@ import json
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import MagicMock, patch
 
 from forex_intelligence_bridge.publisher import (
+    BackendPublisher,
     PublishDisposition,
     PublishResult,
     SpoolReplayer,
@@ -134,6 +136,27 @@ class SpoolReplayerTests(unittest.TestCase):
 
             self.assertIsNone(SpoolReplayer(spool, publisher).replay_one())
             self.assertEqual(0, publisher.calls)
+
+
+class BackendPublisherTests(unittest.TestCase):
+    def test_publish_sends_machine_api_key_and_acknowledges_success(self):
+        response = MagicMock()
+        response.status = 202
+        response.__enter__.return_value = response
+        api_key = "test-bridge-api-key-at-least-32-bytes"
+
+        with patch("urllib.request.urlopen", return_value=response) as urlopen:
+            result = BackendPublisher("http://127.0.0.1:5000/ingest", api_key).publish(
+                valid_envelope()
+            )
+
+        request = urlopen.call_args.args[0]
+        self.assertEqual(api_key, request.get_header("X-bridge-api-key"))
+        self.assertEqual(PublishDisposition.ACK, result.disposition)
+
+    def test_api_key_must_be_at_least_32_bytes(self):
+        with self.assertRaisesRegex(ValueError, "at least 32 bytes"):
+            BackendPublisher("http://127.0.0.1:5000/ingest", "too-short")
 
 
 if __name__ == "__main__":

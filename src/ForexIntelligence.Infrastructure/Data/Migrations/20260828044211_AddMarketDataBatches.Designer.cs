@@ -3,6 +3,7 @@ using System;
 using ForexIntelligence.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace ForexIntelligence.Infrastructure.Data.Migrations
 {
     [DbContext(typeof(ForexDbContext))]
-    partial class ForexDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260828044211_AddMarketDataBatches")]
+    partial class AddMarketDataBatches
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder

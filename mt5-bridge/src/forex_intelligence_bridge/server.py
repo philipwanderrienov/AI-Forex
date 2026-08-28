@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import os
+import threading
 from pathlib import Path
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -16,6 +17,7 @@ from forex_intelligence_bridge.contracts import (
 )
 from forex_intelligence_bridge.health import HeartbeatMonitor
 from forex_intelligence_bridge.observability import configure_logging, get_logger
+from forex_intelligence_bridge.publisher import BackendPublisher, PublishDisposition, SpoolReplayer
 from forex_intelligence_bridge.spool import (
     DEFAULT_MAX_BYTES,
     DuplicateBatchError,
@@ -180,12 +182,44 @@ def run() -> None:
         raise ValueError("Starter bridge hanya boleh bind ke localhost.")
 
     BridgeRequestHandler.spool = EnvelopeSpool(spool_directory, spool_max_items, spool_max_bytes)
+    backend_url = os.environ.get("MT5_BRIDGE_BACKEND_URL", "")
+    backend_api_key = os.environ.get("MT5_BRIDGE_BACKEND_API_KEY", "")
+    replay_interval = float(os.environ.get("MT5_BRIDGE_REPLAY_INTERVAL_SECONDS", "1"))
+    if bool(backend_url) != bool(backend_api_key):
+        raise ValueError("Backend URL dan API key harus dikonfigurasi bersama.")
+    if replay_interval <= 0:
+        raise ValueError("Replay interval harus positif.")
+
+    if backend_url:
+        replayer = SpoolReplayer(
+            BridgeRequestHandler.spool,
+            BackendPublisher(backend_url, backend_api_key),
+        )
+        threading.Thread(
+            target=_run_publisher,
+            args=(replayer, replay_interval),
+            name="backend-publisher",
+            daemon=True,
+        ).start()
     server = ThreadingHTTPServer((host, port), BridgeRequestHandler)
     LOGGER.info(
         "bridge_started",
         extra={"host": host, "port": port, "spoolPath": str(spool_directory)},
     )
     server.serve_forever()
+
+
+def _run_publisher(replayer: SpoolReplayer, interval_seconds: float) -> None:
+    LOGGER.info("backend_publisher_started")
+    while True:
+        result = replayer.replay_one()
+        if result is None:
+            threading.Event().wait(interval_seconds)
+        elif result.disposition is PublishDisposition.RETRY:
+            LOGGER.warning("backend_publish_retry_exhausted", extra={"statusCode": result.status_code})
+            threading.Event().wait(interval_seconds)
+        elif result.disposition is PublishDisposition.PERMANENT_FAILURE:
+            LOGGER.error("backend_envelope_quarantined", extra={"statusCode": result.status_code})
 
 
 if __name__ == "__main__":

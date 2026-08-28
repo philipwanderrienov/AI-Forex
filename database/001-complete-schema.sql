@@ -27,6 +27,19 @@ CREATE TABLE IF NOT EXISTS candles (
 CREATE UNIQUE INDEX IF NOT EXISTS "IX_candles_Instrument_Timeframe_OpenTime"
     ON candles ("Instrument", "Timeframe", "OpenTime");
 
+CREATE TABLE IF NOT EXISTS market_data_batches (
+    "BatchId" character varying(26) NOT NULL,
+    "SourceInstanceId" character varying(64) NOT NULL,
+    "Sequence" bigint NOT NULL,
+    "Checksum" character varying(71) NOT NULL,
+    "RecordCount" integer NOT NULL,
+    "StoredAt" timestamp with time zone NOT NULL,
+    CONSTRAINT "PK_market_data_batches" PRIMARY KEY ("BatchId")
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS "IX_market_data_batches_SourceInstanceId_Sequence"
+    ON market_data_batches ("SourceInstanceId", "Sequence");
+
 CREATE TABLE IF NOT EXISTS refresh_tokens (
     "Id" uuid NOT NULL,
     "TokenHash" character varying(64) NOT NULL,
@@ -53,6 +66,10 @@ ON CONFLICT ("MigrationId") DO NOTHING;
 
 INSERT INTO "__EFMigrationsHistory" ("MigrationId", "ProductVersion")
 VALUES ('20260819063605_AddRefreshTokens', '10.0.4')
+ON CONFLICT ("MigrationId") DO NOTHING;
+
+INSERT INTO "__EFMigrationsHistory" ("MigrationId", "ProductVersion")
+VALUES ('20260828044211_AddMarketDataBatches', '10.0.4')
 ON CONFLICT ("MigrationId") DO NOTHING;
 
 COMMIT;

@@ -10,6 +10,8 @@ public sealed class ForexDbContext(DbContextOptions<ForexDbContext> options) : D
 
     public DbSet<RefreshTokenRecord> RefreshTokens => Set<RefreshTokenRecord>();
 
+    public DbSet<MarketDataBatchRecord> MarketDataBatches => Set<MarketDataBatchRecord>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(ForexDbContext).Assembly);

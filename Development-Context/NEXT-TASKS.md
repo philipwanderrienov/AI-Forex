@@ -11,7 +11,9 @@ Tasks are ordered by current priority. Agents should compare `GPT` and `Codex` b
 7. [x] Run and record a bounded local soak/load simulation of receiver, spool, replay, and recovery behavior.
 8. [x] Replace the simulator with the real MQL5 exporter and verify the first EURUSD H1 FINAL candle through Python validation and durable spool on the demo terminal.
 9. [x] Expand exporter and simulator contract coverage to M15/H1/H4 and the five canonical instruments.
-10. [ ] Verify all 15 instrument/timeframe combinations on the real demo terminal, then verify disconnect, restart, and recovery behavior.
-11. [ ] After the MT5/Python boundary is proven, add a compatible idempotent .NET batch-ingestion endpoint, machine authentication, and wire the tested publisher into the bridge runtime.
+10. [x] Confirm with the user that the real MT5 server-laptop boundary is operational and Python acquisition is ready to hand off to .NET development.
+11. [x] Add a compatible idempotent .NET batch-ingestion endpoint, machine authentication, PostgreSQL batch ledger, and wire the tested publisher into the bridge runtime.
+12. [ ] Apply the new migration and configure the shared bridge API key on the target machines without committing the secret.
+13. [ ] Verify MT5 -> Python spool -> authenticated .NET ingestion -> PostgreSQL, including duplicate ACK and backend outage/recovery.
 
 Do not start Python -> .NET publishing merely because it is later in Phase 02; finish and verify the MT5/Python acquisition boundary first.

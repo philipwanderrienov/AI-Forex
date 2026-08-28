@@ -30,12 +30,15 @@ class PublishResult:
 class BackendPublisher:
     """Publish one envelope and classify the downstream response."""
 
-    def __init__(self, url: str, timeout_seconds: float = 5.0) -> None:
+    def __init__(self, url: str, api_key: str, timeout_seconds: float = 5.0) -> None:
         if not url.startswith(("http://", "https://")):
             raise ValueError("backend URL must use http or https")
         if timeout_seconds <= 0:
             raise ValueError("timeout_seconds must be positive")
+        if len(api_key.encode("utf-8")) < 32:
+            raise ValueError("backend API key must be at least 32 bytes")
         self._url = url
+        self._api_key = api_key
         self._timeout_seconds = timeout_seconds
 
     def publish(self, envelope: dict[str, Any]) -> PublishResult:
@@ -44,7 +47,7 @@ class BackendPublisher:
             self._url,
             data=body,
             method="POST",
-            headers={"Content-Type": "application/json"},
+            headers={"Content-Type": "application/json", "X-Bridge-Api-Key": self._api_key},
         )
         try:
             with urllib.request.urlopen(request, timeout=self._timeout_seconds) as response:

@@ -55,5 +55,14 @@ public sealed class MarketDataEndpointTests
             Candle = candle;
             return Task.CompletedTask;
         }
+
+        public Task<CandleBatchStoreResult> StoreBatchAsync(
+            string batchId,
+            string sourceInstanceId,
+            long sequence,
+            string checksum,
+            IReadOnlyCollection<Candle> candles,
+            CancellationToken cancellationToken) =>
+            Task.FromResult(CandleBatchStoreResult.Stored);
     }
 }

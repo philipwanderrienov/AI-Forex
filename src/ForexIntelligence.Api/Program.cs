@@ -4,6 +4,7 @@ using ForexIntelligence.Api.Authentication;
 using ForexIntelligence.Application.Interfaces.Services;
 using ForexIntelligence.Application.Services;
 using ForexIntelligence.Infrastructure;
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.AspNetCore.RateLimiting;
@@ -48,8 +49,16 @@ builder.Services
     .Validate(options => options.Role is "USER" or "ADMIN", "Role harus USER atau ADMIN.")
     .ValidateOnStart();
 builder.Services
+    .AddOptions<BridgeApiKeyOptions>()
+    .Bind(builder.Configuration.GetSection(BridgeApiKeyOptions.SectionName))
+    .Validate(options => Encoding.UTF8.GetByteCount(options.ApiKey) >= 32, "Bridge API key minimal 32 byte.")
+    .ValidateOnStart();
+builder.Services
     .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-    .AddJwtBearer();
+    .AddJwtBearer()
+    .AddScheme<AuthenticationSchemeOptions, BridgeApiKeyAuthenticationHandler>(
+        BridgeApiKeyOptions.Scheme,
+        _ => { });
 builder.Services
     .AddOptions<JwtBearerOptions>(JwtBearerDefaults.AuthenticationScheme)
     .Configure<Microsoft.Extensions.Options.IOptions<JwtOptions>>((options, configuredJwt) =>
@@ -74,6 +83,11 @@ builder.Services.AddAuthorization(options =>
 {
     options.AddPolicy("USER", policy => policy.RequireRole("USER", "ADMIN"));
     options.AddPolicy("ADMIN", policy => policy.RequireRole("ADMIN"));
+    options.AddPolicy(
+        BridgeApiKeyOptions.Scheme,
+        policy => policy
+            .AddAuthenticationSchemes(BridgeApiKeyOptions.Scheme)
+            .RequireAuthenticatedUser());
 });
 builder.Services.AddRateLimiter(options =>
 {

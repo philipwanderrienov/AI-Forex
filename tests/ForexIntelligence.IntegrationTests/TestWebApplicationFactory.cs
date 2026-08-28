@@ -38,7 +38,8 @@ public sealed class TestWebApplicationFactory : WebApplicationFactory<Program>
                 ["Jwt:RefreshTokenDays"] = "7",
                 ["BootstrapUser:Username"] = Username,
                 ["BootstrapUser:PasswordHash"] = PasswordHashing.Hash(Password),
-                ["BootstrapUser:Role"] = "ADMIN"
+                ["BootstrapUser:Role"] = "ADMIN",
+                ["BridgeAuthentication:ApiKey"] = "integration-test-bridge-api-key-at-least-32-bytes"
             });
         });
     }
