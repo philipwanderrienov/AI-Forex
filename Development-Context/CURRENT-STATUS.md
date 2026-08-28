@@ -39,6 +39,7 @@ move development into authenticated .NET ingestion and PostgreSQL persistence.
 - `scripts/setup-development.ps1` provides a portable interactive setup for new Windows
   development laptops. It stores database/JWT/bootstrap/bridge values in .NET User Secrets,
   generates random JWT and bridge keys, and never writes actual secrets into the repository.
+- `scripts/setup-development.sh` provides the equivalent interactive setup for macOS and Linux.
 - `appsettings.Development.example.json` documents the complete development configuration
   shape using placeholders only.
 - Structured JSON logging and recursive secret redaction are implemented.

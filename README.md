@@ -78,10 +78,18 @@ Pada laptop development Windows baru, jalankan setup interaktif berikut dari roo
 .\scripts\setup-development.ps1
 ```
 
-Script meminta password database dan admin tanpa menampilkannya, membuat JWT/API key random,
+Pada macOS atau Linux, jalankan versi shell dari root repository:
+
+```bash
+./scripts/setup-development.sh
+```
+
+Kedua script meminta password database dan admin tanpa menampilkannya, membuat JWT/API key random,
 menyimpan semuanya ke .NET User Secrets, lalu menampilkan bridge API key satu kali agar dapat
 disimpan di password manager dan dipasang pada laptop server. Struktur konfigurasi tanpa nilai
-rahasia tersedia di `src/ForexIntelligence.Api/appsettings.Development.example.json`.
+rahasia tersedia di `src/ForexIntelligence.Api/appsettings.Development.example.json`. Versi
+macOS/Linux menerima password database kosong untuk instalasi lokal yang memang memakai
+autentikasi passwordless; password admin aplikasi tetap wajib.
 
 Endpoint bridge hanya menerima header `X-Bridge-Api-Key`. Nilainya harus sama dengan
 `MT5_BRIDGE_BACKEND_API_KEY` pada laptop server dan tidak boleh dipakai sebagai JWT pengguna.
