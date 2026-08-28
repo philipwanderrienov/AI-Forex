@@ -31,6 +31,9 @@ move development into authenticated .NET ingestion and PostgreSQL persistence.
   dedicated API-key scheme. Accepted envelopes persist their candles and idempotency ledger
   in one PostgreSQL transaction. Identical retries return `duplicate`; conflicting batch or
   source-sequence reuse returns HTTP 409.
+- The .NET ingestion boundary independently recomputes the canonical SHA-256 record checksum,
+  enforces UTC timestamps and broker-alias consistency, and rejects mismatches before calling
+  persistence.
 - EF Core migration `AddMarketDataBatches` and matching directly executable DBeaver schema
   updates add the `market_data_batches` idempotency ledger.
 - Structured JSON logging and recursive secret redaction are implemented.
@@ -90,7 +93,7 @@ On 2026-08-28:
 - `dotnet build ForexIntelligence.sln --no-restore --disable-build-servers -m:1` completed
   successfully with no warnings.
 - `dotnet test ForexIntelligence.sln --no-build --no-restore --disable-build-servers -m:1`
-  completed successfully with 25 tests passing.
+  completed successfully with 26 tests passing after checksum-mismatch coverage was added.
 
 ## Local soak/load verification
 

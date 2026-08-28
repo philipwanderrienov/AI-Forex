@@ -100,6 +100,23 @@ database.
 
 Lihat [panduan bridge](mt5-bridge/README.md). Jalur belajar pemula tersedia di [Panduan Belajar Python untuk MT5](Development-Phases/panduan-belajar-python-mt5.md).
 
+## Verifikasi MT5 sampai PostgreSQL
+
+1. Jalankan `database/001-complete-schema.sql` lalu `database/999-verify-schema.sql` melalui
+   DBeaver pada database target.
+2. Konfigurasikan `ConnectionStrings__PostgreSql`, seluruh secret JWT/bootstrap, dan
+   `BridgeAuthentication__ApiKey` melalui environment atau .NET user-secrets.
+3. Pada laptop server, set `MT5_BRIDGE_BACKEND_URL` ke
+   `https://<backend-host>/api/v1/bridge/candle-batches` dan isi
+   `MT5_BRIDGE_BACKEND_API_KEY` dengan nilai yang sama.
+4. Jalankan API, lalu Python bridge dan EA MT5. Pastikan spool berkurang hanya setelah API
+   memberikan ACK.
+5. Di DBeaver, cocokkan `market_data_batches."RecordCount"` dengan candle terkait dan pastikan
+   pengiriman ulang batch yang sama tidak menambah baris.
+
+Jangan membuka Python receiver port `8001` ke jaringan. Hanya endpoint HTTPS .NET yang perlu
+dapat dijangkau oleh publisher dari laptop server.
+
 ## Spesifikasi
 
 Mulai dari [roadmap development](Development-Phases/README.md), [discovery](Development-Phases/00-discovery-dan-spesifikasi.md), dan [data dictionary](Development-Phases/00-data-dictionary.md).

@@ -1,4 +1,7 @@
 using System.Globalization;
+using System.Security.Cryptography;
+using System.Text;
+using System.Text.Json;
 using ForexIntelligence.Api.Authentication;
 using ForexIntelligence.Api.Models.Requests.MarketData;
 using ForexIntelligence.Api.Models.Responses.MarketData;
@@ -25,7 +28,13 @@ public sealed class BridgeIngestionController(IMarketDataService marketDataServi
         CancellationToken cancellationToken)
     {
         if (request.SchemaVersion != "mt5-envelope.v1" || request.PayloadType != "CANDLES" ||
-            request.Records.Count is < 1 or > 100)
+            request.Records.Count is < 1 or > 100 || request.SentAt.Offset != TimeSpan.Zero ||
+            request.Records.Any(record =>
+                record.BrokerServerAlias != request.BrokerServerAlias ||
+                record.OpenTime.Offset != TimeSpan.Zero ||
+                record.CloseTime.Offset != TimeSpan.Zero ||
+                record.ReceivedAt.Offset != TimeSpan.Zero) ||
+            !ChecksumMatches(request))
         {
             return BadRequest(new ProblemDetails { Title = "Envelope contract tidak valid." });
         }
@@ -82,4 +91,36 @@ public sealed class BridgeIngestionController(IMarketDataService marketDataServi
         decimal.TryParse(value, NumberStyles.AllowDecimalPoint, CultureInfo.InvariantCulture, out var parsed)
             ? parsed
             : throw new FormatException("Harga harus berupa decimal string canonical.");
+
+    private static bool ChecksumMatches(IngestCandleEnvelopeApiRequest request)
+    {
+        var canonicalRecords = request.Records.Select(record => new SortedDictionary<string, object?>
+        {
+            ["brokerServerAlias"] = record.BrokerServerAlias,
+            ["brokerSymbol"] = record.BrokerSymbol,
+            ["close"] = record.Close,
+            ["closeTime"] = UtcIso(record.CloseTime),
+            ["dataQuality"] = record.DataQuality,
+            ["high"] = record.High,
+            ["instrument"] = record.Instrument,
+            ["low"] = record.Low,
+            ["open"] = record.Open,
+            ["openTime"] = UtcIso(record.OpenTime),
+            ["receivedAt"] = UtcIso(record.ReceivedAt),
+            ["schemaVersion"] = record.SchemaVersion,
+            ["source"] = record.Source,
+            ["status"] = record.Status,
+            ["tickVolume"] = record.TickVolume,
+            ["timeframe"] = record.Timeframe
+        });
+        var canonicalJson = JsonSerializer.Serialize(canonicalRecords);
+        var expected = "sha256:" + Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(canonicalJson)));
+        var expectedBytes = Encoding.ASCII.GetBytes(expected);
+        var suppliedBytes = Encoding.ASCII.GetBytes(request.Checksum);
+        return expectedBytes.Length == suppliedBytes.Length &&
+            CryptographicOperations.FixedTimeEquals(expectedBytes, suppliedBytes);
+    }
+
+    private static string UtcIso(DateTimeOffset value) =>
+        value.ToUniversalTime().ToString("yyyy-MM-dd'T'HH:mm:ss'Z'", CultureInfo.InvariantCulture);
 }

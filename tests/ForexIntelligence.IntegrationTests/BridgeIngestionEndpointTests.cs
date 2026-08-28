@@ -51,6 +51,22 @@ public sealed class BridgeIngestionEndpointTests
         Assert.Single(repository.Candles);
     }
 
+    [Fact]
+    public async Task Ingest_RejectsChecksumMismatchBeforePersistence()
+    {
+        var repository = new RecordingRepository();
+        await using var factory = CreateFactory(repository);
+        using var client = factory.CreateClient();
+        client.DefaultRequestHeaders.Add(BridgeApiKeyAuthenticationHandler.HeaderName, ApiKey);
+
+        var response = await client.PostAsJsonAsync(
+            "/api/v1/bridge/candle-batches",
+            ValidEnvelope("sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"));
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        Assert.Empty(repository.Candles);
+    }
+
     private static WebApplicationFactory<Program> CreateFactory(ICandleRepository repository) =>
         new TestWebApplicationFactory().WithWebHostBuilder(builder =>
             builder.ConfigureTestServices(services =>
@@ -59,17 +75,18 @@ public sealed class BridgeIngestionEndpointTests
                 services.AddSingleton(repository);
             }));
 
-    private static object ValidEnvelope() => new
-    {
-        schemaVersion = "mt5-envelope.v1",
-        batchId = "01J5J5Y22B8NKZ4M6KW7MPNN6C",
-        sourceInstanceId = "lubuntu-mt5-primary",
-        brokerServerAlias = "demo-primary",
-        sequence = 7,
-        sentAt = "2026-08-28T08:00:01Z",
-        payloadType = "CANDLES",
-        checksum = "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-        records = new[]
+    private static object ValidEnvelope(
+        string checksum = "sha256:935f0c8cbcacc4f54c43d6a02f78fa467108cb691786aeb14aa9bac22d422331") => new
+        {
+            schemaVersion = "mt5-envelope.v1",
+            batchId = "01J5J5Y22B8NKZ4M6KW7MPNN6C",
+            sourceInstanceId = "lubuntu-mt5-primary",
+            brokerServerAlias = "demo-primary",
+            sequence = 7,
+            sentAt = "2026-08-28T08:00:01Z",
+            payloadType = "CANDLES",
+            checksum,
+            records = new[]
         {
             new
             {
@@ -91,7 +108,7 @@ public sealed class BridgeIngestionEndpointTests
                 dataQuality = "GOOD"
             }
         }
-    };
+        };
 
     private sealed record IngestionResponse(string Status, string BatchId, int StoredRecords);
 
