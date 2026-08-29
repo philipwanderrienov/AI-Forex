@@ -2,6 +2,12 @@
 
 `ForexIntelligenceDataExporter.mq5` adalah EA read-only untuk mengirim data terminal MT5 ke Python bridge lokal. Source tidak mempunyai fungsi membuka, mengubah, atau menutup order.
 
+Versi 0.4 menyimpan nomor urut envelope di Terminal Global Variables MT5 berdasarkan
+`SourceInstanceId`. Karena itu melepas/memasang ulang EA atau me-restart terminal tidak
+mengulang sequence yang sudah pernah dikirim ke ledger backend. Nomor yang terlewati akibat
+kegagalan jaringan aman; sequence tidak boleh di-reset selama `SourceInstanceId` yang sama
+masih digunakan.
+
 ## Milestone saat ini
 
 EA sekarang mengirim:

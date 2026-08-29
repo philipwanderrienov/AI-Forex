@@ -1,5 +1,5 @@
 #property strict
-#property version "0.3"
+#property version "0.4"
 #property description "Read-only multi-symbol M15/H1/H4 candle exporter for Forex Intelligence"
 
 input string HeartbeatUrl = "http://127.0.0.1:8001/v1/mt5/heartbeat";
@@ -23,6 +23,7 @@ input int RequestTimeoutMilliseconds = 5000;
 #define TIMEFRAME_COUNT 3
 
 ulong Sequence = 0;
+string SequenceStorageKey = "";
 datetime LastCandlePollAt = 0;
 datetime LastPublishedOpenTime[INSTRUMENT_COUNT][TIMEFRAME_COUNT];
 string BrokerSymbols[INSTRUMENT_COUNT];
@@ -73,6 +74,68 @@ string Sha256(const string value)
    for(int i=0;i<ArraySize(digest);i++)
       hex+=StringFormat("%02x",digest[i]);
    return "sha256:"+hex;
+  }
+
+string BuildSequenceStorageKey()
+  {
+   string source_hash=Sha256(SourceInstanceId);
+   if(StringLen(source_hash)<39)
+      return "";
+
+   // Terminal Global Variable names are limited to 63 characters. A digest
+   // keeps the state isolated per source instance without exposing its name.
+   return "ForexIntelligence.Sequence."+StringSubstr(source_hash,7,32);
+  }
+
+bool LoadSequence()
+  {
+   SequenceStorageKey=BuildSequenceStorageKey();
+   if(SequenceStorageKey=="")
+     {
+      Print("Cannot calculate persistent sequence storage key.");
+      return false;
+     }
+
+   if(!GlobalVariableCheck(SequenceStorageKey))
+     {
+      ResetLastError();
+      if(GlobalVariableSet(SequenceStorageKey,0.0)==0)
+        {
+         PrintFormat("Cannot initialize persistent sequence. error=%d",GetLastError());
+         return false;
+        }
+     }
+
+   double stored_sequence=GlobalVariableGet(SequenceStorageKey);
+   if(stored_sequence<0.0 || stored_sequence>9007199254740991.0)
+     {
+      PrintFormat("Persistent sequence is outside the supported range: %.0f",stored_sequence);
+      return false;
+     }
+
+   Sequence=(ulong)stored_sequence;
+   return true;
+  }
+
+bool ReserveNextSequence()
+  {
+   if(Sequence>=9007199254740991)
+     {
+      Print("Persistent sequence has reached its supported maximum.");
+      return false;
+     }
+
+   ulong next_sequence=Sequence+1;
+   ResetLastError();
+   if(GlobalVariableSet(SequenceStorageKey,(double)next_sequence)==0)
+     {
+      PrintFormat("Cannot persist the next sequence. error=%d",GetLastError());
+      return false;
+     }
+
+   GlobalVariablesFlush();
+   Sequence=next_sequence;
+   return true;
   }
 
 int PostJson(const string url,const string payload)
@@ -188,7 +251,11 @@ bool PublishLatestFinalCandle(const int instrument_index,const int timeframe_ind
       return false;
      }
 
-   Sequence++;
+   // Reserve durably before sending. A failed request may leave a harmless gap,
+   // but an EA or terminal restart must never reuse a ledger sequence.
+   if(!ReserveNextSequence())
+      return false;
+
    string envelope=StringFormat(
       "{\"schemaVersion\":\"mt5-envelope.v1\",\"batchId\":\"%s\",\"sourceInstanceId\":\"%s\",\"brokerServerAlias\":\"%s\",\"sequence\":%I64u,\"sentAt\":\"%s\",\"payloadType\":\"CANDLES\",\"records\":[%s],\"checksum\":\"%s\"}",
       NewBatchId(),EscapeJson(SourceInstanceId),EscapeJson(BrokerServerAlias),Sequence,
@@ -269,10 +336,13 @@ int OnInit()
      }
 
    MathSrand((int)GetTickCount());
+   if(!LoadSequence())
+      return INIT_FAILED;
+
    EventSetTimer(HeartbeatIntervalSeconds);
    PrintFormat(
-      "Forex Intelligence exporter initialized. instruments=%d timeframes=%d candlePollSeconds=%d",
-      INSTRUMENT_COUNT,TIMEFRAME_COUNT,CandlePollIntervalSeconds);
+      "Forex Intelligence exporter initialized. instruments=%d timeframes=%d candlePollSeconds=%d nextSequence=%I64u",
+      INSTRUMENT_COUNT,TIMEFRAME_COUNT,CandlePollIntervalSeconds,Sequence+1);
    return INIT_SUCCEEDED;
   }
 

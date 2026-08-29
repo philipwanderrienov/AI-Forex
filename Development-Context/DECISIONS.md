@@ -22,6 +22,12 @@ Stay focused on MT5/MQL5 and Python market-data acquisition before .NET ingestio
 
 The MT5 simulator must not invent a separate dummy schema. It must emit the same heartbeat and candle envelope contracts expected from the real MQL5 exporter so replacing simulator input with real MT5 input does not require changes to the Python bridge.
 
+## 2026-08-29 — Persistent exporter sequence
+
+- Persist the MQL5 envelope sequence per `SourceInstanceId` in MT5 Terminal Global Variables.
+- Reserve the next sequence before network delivery. Sequence gaps are acceptable, but sequence
+  reuse after an EA or terminal restart is not because the backend ledger treats it as conflict.
+
 ## Existing architecture principles
 
 - Trading execution remains manual; the system is decision support, not an auto-trading bot.

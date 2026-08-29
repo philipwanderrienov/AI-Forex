@@ -1,6 +1,6 @@
 # Current Development Status
 
-Last updated: 2026-08-28
+Last updated: 2026-08-29
 Owning branch for this update: `Codex`
 
 ## Current focus
@@ -17,7 +17,10 @@ move development into authenticated .NET ingestion and PostgreSQL persistence.
 - Candle validation includes UTC timestamps, OHLC rules, final/partial status, tick volume, batch size, and SHA-256 checksum.
 - Durable FIFO spool includes duplicate protection, item/byte capacity limits, and disk-free monitoring.
 - Unit tests exist for contracts, health, server, and spool.
-- MQL5 exporter on the GPT lineage has been upgraded from heartbeat-only to a first real `EURUSD H1` FINAL-candle export using `CopyRates`, posting to `/v1/mt5/envelopes`.
+- MQL5 exporter reads all 15 canonical instrument/timeframe combinations using `CopyRates`
+  and posts FINAL candles to `/v1/mt5/envelopes`.
+- Exporter sequence state is persisted per `SourceInstanceId` in MT5 Terminal Global Variables
+  before delivery, preventing sequence reuse after EA or terminal restart.
 - Development-only `mt5-bridge/tools/mt5_simulator.py` sends the same heartbeat and candle
   contracts as the real exporter using only Python standard-library dependencies.
 - Simulator supports continuous heartbeat, `--once`, all 15 canonical instrument/timeframe
@@ -94,6 +97,12 @@ simulator candle remained at spool depth 1 while the backend/schema was unavaila
 successfully after recovery: EF Core inserted both `candles` and `market_data_batches`, DBeaver
 showed the `mt5-simulator-local` sequence-1 ledger row, and no quarantine entry was created.
 
+The real exporter version 0.3 then completed the full server path. Heartbeats from
+`lubuntu-mt5-primary` were accepted, and PostgreSQL stored FINAL candles for all five canonical
+instruments across M15, H1, and H4. DBeaver showed 16 candle rows: 15 real MT5 combinations plus
+the earlier simulator candle. This verifies MT5 -> Python bridge -> authenticated .NET ingestion
+-> PostgreSQL for the planned acquisition matrix.
+
 ## Locally verified by Codex
 
 On 2026-08-28, the local PostgreSQL schema was upgraded through EF Core migration
@@ -160,8 +169,7 @@ The temporary server was stopped and its spool was automatically removed after v
 
 ## Not yet verified
 
-- Run the real MT5 exporter -> Python spool -> .NET -> PostgreSQL path after recompiling and
-  attaching exporter version 0.3; the previously attached EA emitted an invalid `sentAt` format.
-- Verify duplicate delivery against the target-server PostgreSQL ledger.
+- Compile and attach exporter version 0.4, then verify sequence continuity and duplicate-safe
+  delivery across an EA/terminal restart against the target-server PostgreSQL ledger.
 - Upgrade the target server from PostgreSQL 17.11 to the repository target PostgreSQL 18.x before
   production deployment.

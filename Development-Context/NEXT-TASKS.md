@@ -14,14 +14,16 @@ Tasks are ordered by current priority. Agents should compare `GPT` and `Codex` b
 10. [x] Confirm with the user that the real MT5 server-laptop boundary is operational and Python acquisition is ready to hand off to .NET development.
 11. [x] Add a compatible idempotent .NET batch-ingestion endpoint, machine authentication, PostgreSQL batch ledger, and wire the tested publisher into the bridge runtime.
 12. [x] Apply the new migration and configure the shared bridge API key on the target machines without committing the secret.
-13. [ ] Verify MT5 -> Python spool -> authenticated .NET ingestion -> PostgreSQL, including duplicate ACK and backend outage/recovery.
+13. [x] Verify MT5 -> Python spool -> authenticated .NET ingestion -> PostgreSQL, including backend outage/recovery and the complete real 15-combination acquisition matrix.
 14. [x] Add a portable interactive Windows setup script and placeholder configuration template so development secrets can be recreated safely on each laptop.
 15. [x] Define and implement idempotent candle-overlap handling for new batches before adding checkpoint/backfill; cover mixed existing/new candle batches with PostgreSQL integration tests.
+16. [ ] Compile exporter version 0.4 and verify persistent sequence continuity plus duplicate-safe delivery after EA/terminal restart on the target server.
 
 Local PostgreSQL migration plus simulator -> bridge -> .NET -> PostgreSQL happy-path,
 duplicate-ACK, and backend outage/recovery verification completed on 2026-08-28. The dedicated
 Linux server repeated the schema, authentication, persistence, and outage/replay path on
-2026-08-29. Item 13 remains open until exporter version 0.3 sends a real MT5 candle through the
-complete pipeline and duplicate delivery is checked against the target ledger.
+2026-08-29. Exporter version 0.3 subsequently stored the complete real five-instrument by
+three-timeframe matrix. The next hardening checkpoint is restart-safe exporter sequence state;
+version 0.4 implements it and still requires target-terminal verification.
 
 Do not start Python -> .NET publishing merely because it is later in Phase 02; finish and verify the MT5/Python acquisition boundary first.
