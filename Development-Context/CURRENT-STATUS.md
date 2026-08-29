@@ -86,6 +86,14 @@ This proves the local dummy pipeline works end-to-end for heartbeat plus one val
 
 The earlier Windows bridge-only verification also succeeded: before a producer was connected, `/health` correctly reported terminal `UNKNOWN`, spool `AVAILABLE`, and depth `0`.
 
+On 2026-08-29, the dedicated Linux server laptop completed the local backend handoff using
+PostgreSQL 17.11, .NET SDK 10.0.400, ASP.NET Core, and the Python bridge on the same machine.
+The target schema and batch-ledger migration were applied under `forex_app`, `/health/ready`
+reported `Healthy`, and the bridge authenticated using the locally stored machine API key. A
+simulator candle remained at spool depth 1 while the backend/schema was unavailable, then replayed
+successfully after recovery: EF Core inserted both `candles` and `market_data_batches`, DBeaver
+showed the `mt5-simulator-local` sequence-1 ledger row, and no quarantine entry was created.
+
 ## Locally verified by Codex
 
 On 2026-08-28, the local PostgreSQL schema was upgraded through EF Core migration
@@ -152,6 +160,8 @@ The temporary server was stopped and its spool was automatically removed after v
 
 ## Not yet verified
 
-- Apply migration `20260828044211_AddMarketDataBatches` to the target PostgreSQL database.
-- Run a real end-to-end MT5 -> Python spool -> .NET -> PostgreSQL verification on the target machines.
-- Verify concurrent duplicate delivery and backend outage/recovery against real PostgreSQL.
+- Run the real MT5 exporter -> Python spool -> .NET -> PostgreSQL path after recompiling and
+  attaching exporter version 0.3; the previously attached EA emitted an invalid `sentAt` format.
+- Verify duplicate delivery against the target-server PostgreSQL ledger.
+- Upgrade the target server from PostgreSQL 17.11 to the repository target PostgreSQL 18.x before
+  production deployment.
