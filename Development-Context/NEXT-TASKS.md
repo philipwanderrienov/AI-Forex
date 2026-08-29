@@ -17,13 +17,15 @@ Tasks are ordered by current priority. Agents should compare `GPT` and `Codex` b
 13. [x] Verify MT5 -> Python spool -> authenticated .NET ingestion -> PostgreSQL, including backend outage/recovery and the complete real 15-combination acquisition matrix.
 14. [x] Add a portable interactive Windows setup script and placeholder configuration template so development secrets can be recreated safely on each laptop.
 15. [x] Define and implement idempotent candle-overlap handling for new batches before adding checkpoint/backfill; cover mixed existing/new candle batches with PostgreSQL integration tests.
-16. [ ] Compile exporter version 0.4 and verify persistent sequence continuity plus duplicate-safe delivery after EA/terminal restart on the target server.
+16. [x] Compile exporter version 0.4 and verify persistent sequence continuity plus duplicate-safe delivery after EA/terminal restart on the target server.
+17. [ ] Design and implement durable per-instrument/timeframe checkpoints with bounded historical candle backfill after restart or reconnect.
 
 Local PostgreSQL migration plus simulator -> bridge -> .NET -> PostgreSQL happy-path,
 duplicate-ACK, and backend outage/recovery verification completed on 2026-08-28. The dedicated
 Linux server repeated the schema, authentication, persistence, and outage/replay path on
 2026-08-29. Exporter version 0.3 subsequently stored the complete real five-instrument by
 three-timeframe matrix. The next hardening checkpoint is restart-safe exporter sequence state;
-version 0.4 implements it and still requires target-terminal verification.
+version 0.4 was verified with ledger sequences continuing through 212, active spool depth zero,
+and quarantine depth zero. The next implementation task is checkpoint-driven historical backfill.
 
 Do not start Python -> .NET publishing merely because it is later in Phase 02; finish and verify the MT5/Python acquisition boundary first.

@@ -103,6 +103,12 @@ instruments across M15, H1, and H4. DBeaver showed 16 candle rows: 15 real MT5 c
 the earlier simulator candle. This verifies MT5 -> Python bridge -> authenticated .NET ingestion
 -> PostgreSQL for the planned acquisition matrix.
 
+Exporter version 0.4 was subsequently compiled, attached, and restarted on the target terminal.
+The `lubuntu-mt5-primary` ledger retained monotonic sequence state: DBeaver reported sequence 3
+through 212 across 30 stored batches. Gaps reflect sequences reserved before failed deliveries and
+are valid; the sequence did not reset, the bridge spool drained to zero, and quarantine remained
+zero. Re-published overlapping candles remained duplicate-safe in canonical candle storage.
+
 ## Locally verified by Codex
 
 On 2026-08-28, the local PostgreSQL schema was upgraded through EF Core migration
@@ -169,7 +175,7 @@ The temporary server was stopped and its spool was automatically removed after v
 
 ## Not yet verified
 
-- Compile and attach exporter version 0.4, then verify sequence continuity and duplicate-safe
-  delivery across an EA/terminal restart against the target-server PostgreSQL ledger.
+- Implement durable per-instrument/timeframe checkpoints and bounded historical backfill before
+  treating reconnects or longer outages as lossless.
 - Upgrade the target server from PostgreSQL 17.11 to the repository target PostgreSQL 18.x before
   production deployment.
