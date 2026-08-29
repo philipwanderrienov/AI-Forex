@@ -22,7 +22,7 @@ Model HTTP ditempatkan terpisah di `ForexIntelligence.Api/Models/Requests` dan `
 
 ## Prasyarat development
 
-- .NET SDK `10.0.201` atau patch yang kompatibel menurut `global.json`.
+- .NET SDK `10.0.400` atau patch `10.0.4xx` yang kompatibel menurut `global.json`.
 - Python `3.12+` untuk bridge.
 - PostgreSQL 18.x yang dipasang native pada mesin development/runtime.
 

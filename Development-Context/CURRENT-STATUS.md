@@ -119,9 +119,12 @@ The temporary bridge process was stopped and its isolated test spool was removed
 
 ## Latest automated verification
 
-On 2026-08-28:
+On 2026-08-29:
 
-- `PYTHONPATH=src python -m unittest discover -s tests -v` completed successfully with 76
+- The repository SDK pin was upgraded from `10.0.201` to `10.0.400` with
+  `rollForward: latestPatch` to match the server development environment.
+- `dotnet restore ForexIntelligence.sln` completed successfully using SDK `10.0.400`.
+- `PYTHONPATH=src python -m unittest discover -s tests -v` completed successfully with 77
   tests, including machine API-key delivery and validation.
 - `dotnet build ForexIntelligence.sln --no-restore --disable-build-servers -m:1` completed
   successfully with no warnings.
