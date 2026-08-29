@@ -1,5 +1,12 @@
--- DBeaver: jalankan sebagai forex_app pada database "forex_intelligence".
+-- DBeaver: jalankan pada database "forex_intelligence" sebagai administrator PostgreSQL
+-- atau langsung sebagai forex_app. DDL selalu dieksekusi sebagai forex_app.
 -- Gunakan Execute SQL Script (Alt+X).
+
+BEGIN;
+
+-- SET LOCAL hanya berlaku selama transaksi ini. Koneksi administrator otomatis kembali ke
+-- role semula setelah COMMIT/ROLLBACK, sedangkan object tetap dimiliki forex_app.
+SET LOCAL ROLE forex_app;
 
 DO $TARGET$
 BEGIN
@@ -15,8 +22,6 @@ BEGIN
             current_user;
     END IF;
 END $TARGET$;
-
-BEGIN;
 
 CREATE TABLE IF NOT EXISTS "__EFMigrationsHistory" (
     "MigrationId" character varying(150) NOT NULL,

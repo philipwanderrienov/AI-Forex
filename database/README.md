@@ -9,11 +9,13 @@ dijalankan melalui DBeaver tanpa perintah khusus terminal.
 2. Buka `000-create-database.sql` dan ganti `CHANGE_ME_STRONG_PASSWORD`.
 3. Jalankan blok pembuatan role. Jalankan `CREATE DATABASE` hanya jika database
    `forex_intelligence` belum tersedia.
-4. Buat koneksi DBeaver ke `forex_intelligence` sebagai `forex_app`.
+4. Arahkan koneksi DBeaver administrator ke database `forex_intelligence`, atau buat koneksi
+   terpisah sebagai `forex_app` bila diinginkan.
 5. Buka SQL Editor dari koneksi tersebut dan pastikan selector toolbar menunjukkan
    `public@forex_intelligence`, bukan `public@postgres`.
 6. Jalankan seluruh `001-complete-schema.sql` dengan **Execute SQL Script** (`Alt+X`). Script
-   berhenti dengan exception sebelum membuat tabel jika database atau user koneksi salah.
+   memakai `SET LOCAL ROLE forex_app`, sehingga koneksi administrator boleh digunakan tetapi
+   seluruh object tetap dibuat dan dimiliki oleh `forex_app`.
 7. Jalankan `999-verify-schema.sql`. Verifikasi melempar exception jika target koneksi salah,
    schema belum lengkap, primary key/index hilang, atau ownership tidak sesuai.
 

@@ -1,4 +1,9 @@
--- DBeaver: jalankan sebagai forex_app pada database "forex_intelligence".
+-- DBeaver: jalankan pada database "forex_intelligence" sebagai administrator PostgreSQL
+-- atau langsung sebagai forex_app. Pemeriksaan permission dijalankan sebagai forex_app.
+
+BEGIN;
+
+SET LOCAL ROLE forex_app;
 
 DO $VERIFY$
 DECLARE
@@ -102,6 +107,7 @@ END $VERIFY$;
 
 SELECT
     current_database() AS database_name,
+    session_user AS connection_user,
     current_user AS connected_as,
     pg_get_userbyid(datdba) AS database_owner,
     current_setting('server_version') AS postgres_version
@@ -123,3 +129,5 @@ FROM pg_indexes
 WHERE schemaname = 'public'
   AND tablename IN ('candles', 'market_data_batches', 'refresh_tokens')
 ORDER BY tablename, indexname;
+
+COMMIT;
