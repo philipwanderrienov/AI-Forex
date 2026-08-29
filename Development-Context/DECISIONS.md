@@ -28,6 +28,15 @@ The MT5 simulator must not invent a separate dummy schema. It must emit the same
 - Reserve the next sequence before network delivery. Sequence gaps are acceptable, but sequence
   reuse after an EA or terminal restart is not because the backend ledger treats it as conflict.
 
+## 2026-08-29 — ACK-gated candle checkpoints
+
+- Persist the last bridge-accepted broker open time and observed UTC offset independently for
+  every canonical instrument/timeframe series.
+- Backfill forward from the exact broker-history checkpoint in chronological batches capped by
+  the 100-record envelope contract, advancing only after bridge HTTP 202.
+- If the current broker UTC offset differs from the stored offset, pause that series. Do not guess
+  historical DST conversion or silently skip the uncertain interval.
+
 ## Existing architecture principles
 
 - Trading execution remains manual; the system is decision support, not an auto-trading bot.

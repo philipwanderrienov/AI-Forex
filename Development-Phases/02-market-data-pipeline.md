@@ -14,15 +14,18 @@
 - Batch valid disimpan atomik pada durable FIFO spool lokal yang berbatas dan tidak menghapus
   data lama ketika penuh.
 - EA mengirim heartbeat dan candle FINAL untuk lima instrumen canonical pada M15/H1/H4.
-  Alur `EURUSD H1` sudah diverifikasi memakai terminal demo MT5 nyata; kombinasi lainnya
-  sudah lolos validasi kontrak melalui simulator tetapi belum diverifikasi di terminal nyata.
+  Seluruh 15 kombinasi sudah diverifikasi memakai terminal demo MT5 nyata sampai PostgreSQL.
+- Sequence transport dan checkpoint candle per instrumen/timeframe disimpan di MT5 Terminal
+  Global Variables. Backfill berjalan kronologis dan terbatas setelah restart/reconnect, hanya
+  memajukan checkpoint setelah HTTP 202 dari durable spool. Perubahan offset broker menghentikan
+  backfill seri secara eksplisit sampai normalisasi DST historis tersedia.
 - Komponen publisher backend, ACK-driven removal, retry/backoff, spool recovery, quarantine,
   dan structured logging sudah diimplementasikan dan terhubung ke runtime receiver melalui
   konfigurasi opt-in. Backend menyediakan endpoint batch terautentikasi dan idempotent dengan
   persistence PostgreSQL transaksional; alur lokal termasuk outage/recovery sudah diverifikasi.
-- Credential bridge dapat dikonfigurasi melalui environment dan .NET User Secrets, tetapi
-  pemasangan credential pada mesin target belum diverifikasi. Historical checkpoint/backfill,
-  tick/account telemetry, dan validasi seluruh matriks data broker nyata belum diimplementasikan.
+- Credential bridge sudah dikonfigurasi dan diverifikasi pada mesin target melalui environment
+  dan .NET User Secrets. Tick/account telemetry serta normalisasi historical DST lintas perubahan
+  offset belum diimplementasikan.
 
 ## Tujuan
 

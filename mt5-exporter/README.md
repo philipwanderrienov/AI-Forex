@@ -2,11 +2,12 @@
 
 `ForexIntelligenceDataExporter.mq5` adalah EA read-only untuk mengirim data terminal MT5 ke Python bridge lokal. Source tidak mempunyai fungsi membuka, mengubah, atau menutup order.
 
-Versi 0.4 menyimpan nomor urut envelope di Terminal Global Variables MT5 berdasarkan
+Versi 0.5 menyimpan nomor urut envelope dan checkpoint candle per instrumen/timeframe di
+Terminal Global Variables MT5 berdasarkan
 `SourceInstanceId`. Karena itu melepas/memasang ulang EA atau me-restart terminal tidak
-mengulang sequence yang sudah pernah dikirim ke ledger backend. Nomor yang terlewati akibat
-kegagalan jaringan aman; sequence tidak boleh di-reset selama `SourceInstanceId` yang sama
-masih digunakan.
+mengulang sequence dan dapat melanjutkan candle yang tertinggal. Nomor yang terlewati akibat
+kegagalan jaringan aman; state tersebut tidak boleh di-reset selama `SourceInstanceId` yang
+sama masih digunakan.
 
 ## Milestone saat ini
 
@@ -18,11 +19,16 @@ EA sekarang mengirim:
 - harga menggunakan precision (`SYMBOL_DIGITS`) broker;
 - `tickVolume`, waktu candle, broker symbol, canonical instrument, sequence, batch ID, dan checksum SHA-256 yang divalidasi Python bridge.
 
-Candle indeks `0` tidak dikirim. Exporter mengambil shift `1` melalui `CopyRates` dan
-memastikan waktu penutupan sudah lewat. Candle yang sama tidak dikirim ulang selama EA
-tetap hidup.
+Candle indeks `0` tidak dikirim. Pada pemakaian pertama, exporter mengirim candle FINAL terbaru
+dan membentuk checkpoint. Setelah restart/reconnect, exporter mencari checkpoint tersebut dalam
+histori broker dan mengirim candle sesudahnya secara kronologis, maksimal
+`MaxBackfillBarsPerSeries` (default 32) per seri pada setiap siklus. Checkpoint baru disimpan
+setelah bridge memberi HTTP 202, yaitu setelah envelope aman di durable spool.
 
-> Catatan timezone: milestone real-time ini mengonversi waktu bar server MT5 menggunakan offset server-ke-UTC saat ini. Mekanisme historical backfill yang DST-aware belum tersedia dan harus diselesaikan sebelum ingestion histori lama diaktifkan.
+> Catatan timezone: versi ini hanya melakukan backfill otomatis ketika offset UTC broker sama
+> dengan offset yang tersimpan bersama checkpoint. Jika offset berubah—misalnya outage melewati
+> pergantian DST—seri tersebut dihentikan dengan warning agar tidak menghasilkan timestamp yang
+> keliru atau menyembunyikan gap. Normalisasi DST historis penuh tetap pekerjaan berikutnya.
 
 ## Menjalankan milestone
 
@@ -53,14 +59,11 @@ GET  /health
 Belum tersedia atau belum diverifikasi nyata:
 
 - discovery otomatis suffix/prefix broker;
-- ekspor terminal nyata untuk M15/H4 dan empat instrumen selain EURUSD (implementasinya
-  sudah tersedia dan kontraknya sudah diuji melalui simulator);
 - tick dan account telemetry;
-- sequence/checkpoint durable setelah restart EA;
 - retry/backoff terjadwal;
 - historical backfill DST-aware;
-- publisher Python ke backend .NET.
+- discovery otomatis timezone/DST broker.
 
-Milestone `EURUSD H1 -> Python validation -> durable spool` sudah terbukti menggunakan akun
-demo MT5. Tahap berikutnya adalah memverifikasi seluruh matriks instrumen/timeframe pada
-terminal nyata, termasuk disconnect, restart, dan recovery.
+Seluruh matriks lima instrumen × tiga timeframe serta restart-safe sequence sudah terbukti pada
+terminal demo nyata. Versi 0.5 berikutnya perlu diverifikasi dengan restart singkat dan beberapa
+candle yang tertinggal sebelum pengembangan timezone/DST historis penuh.

@@ -21,6 +21,10 @@ move development into authenticated .NET ingestion and PostgreSQL persistence.
   and posts FINAL candles to `/v1/mt5/envelopes`.
 - Exporter sequence state is persisted per `SourceInstanceId` in MT5 Terminal Global Variables
   before delivery, preventing sequence reuse after EA or terminal restart.
+- Exporter version 0.5 also persists a candle checkpoint for each of the 15 canonical series.
+  It replays missing closed bars chronologically in batches capped at 100 records, advances a
+  checkpoint only after bridge HTTP 202, and pauses rather than guessing across broker UTC-offset
+  changes.
 - Development-only `mt5-bridge/tools/mt5_simulator.py` sends the same heartbeat and candle
   contracts as the real exporter using only Python standard-library dependencies.
 - Simulator supports continuous heartbeat, `--once`, all 15 canonical instrument/timeframe
@@ -152,7 +156,7 @@ On 2026-08-29:
 - The repository SDK pin was upgraded from `10.0.201` to `10.0.400` with
   `rollForward: latestPatch` to match the server development environment.
 - `dotnet restore ForexIntelligence.sln` completed successfully using SDK `10.0.400`.
-- `PYTHONPATH=src python -m unittest discover -s tests -v` completed successfully with 77
+- `PYTHONPATH=src python -m unittest discover -s tests -v` completed successfully with 82
   tests, including machine API-key delivery and validation.
 - `dotnet build ForexIntelligence.sln --no-restore --disable-build-servers -m:1` completed
   successfully with no warnings.
@@ -175,7 +179,8 @@ The temporary server was stopped and its spool was automatically removed after v
 
 ## Not yet verified
 
-- Implement durable per-instrument/timeframe checkpoints and bounded historical backfill before
-  treating reconnects or longer outages as lossless.
+- Compile and verify exporter version 0.5 checkpoint/backfill after a short target-terminal outage.
+- Implement broker-aware historical DST normalization before allowing automatic backfill across
+  a detected UTC-offset transition.
 - Upgrade the target server from PostgreSQL 17.11 to the repository target PostgreSQL 18.x before
   production deployment.
