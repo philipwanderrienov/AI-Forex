@@ -1,6 +1,21 @@
 -- DBeaver: jalankan sebagai forex_app pada database "forex_intelligence".
 -- Gunakan Execute SQL Script (Alt+X).
 
+DO $TARGET$
+BEGIN
+    IF current_database() <> 'forex_intelligence' THEN
+        RAISE EXCEPTION
+            'Target database salah: terhubung ke %, seharusnya forex_intelligence. Buka SQL Editor dari koneksi forex_intelligence.',
+            current_database();
+    END IF;
+
+    IF current_user <> 'forex_app' THEN
+        RAISE EXCEPTION
+            'Target user salah: terhubung sebagai %, seharusnya forex_app.',
+            current_user;
+    END IF;
+END $TARGET$;
+
 BEGIN;
 
 CREATE TABLE IF NOT EXISTS "__EFMigrationsHistory" (

@@ -38,6 +38,10 @@ move development into authenticated .NET ingestion and PostgreSQL persistence.
   persistence.
 - EF Core migration `AddMarketDataBatches` and matching directly executable DBeaver schema
   updates add the `market_data_batches` idempotency ledger.
+- Database bootstrap, schema, and verification scripts now fail fast when a DBeaver editor is
+  connected to the wrong database or application user. Verification also checks database/table
+  ownership and all primary-key and secondary indexes, preventing a schema created accidentally
+  under `public@postgres` from being reported as a valid application database.
 - `scripts/setup-development.ps1` provides a portable interactive setup for new Windows
   development laptops. It stores database/JWT/bootstrap/bridge values in .NET User Secrets,
   generates random JWT and bridge keys, and never writes actual secrets into the repository.

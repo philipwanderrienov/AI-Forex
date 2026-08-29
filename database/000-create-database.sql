@@ -2,6 +2,15 @@
 -- Ganti CHANGE_ME_STRONG_PASSWORD sebelum menjalankan blok role.
 -- Jangan simpan password nyata ke Git.
 
+DO $TARGET$
+BEGIN
+    IF current_database() <> 'postgres' THEN
+        RAISE EXCEPTION
+            'Target database salah: terhubung ke %, seharusnya postgres untuk bootstrap database.',
+            current_database();
+    END IF;
+END $TARGET$;
+
 DO $ADMIN$
 BEGIN
     IF NOT EXISTS (
