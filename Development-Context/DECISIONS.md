@@ -37,6 +37,14 @@ The MT5 simulator must not invent a separate dummy schema. It must emit the same
 - If the current broker UTC offset differs from the stored offset, pause that series. Do not guess
   historical DST conversion or silently skip the uncertain interval.
 
+## 2026-08-30 — Market-data status is not service readiness
+
+- Report candle freshness and gaps through an authenticated market-data status endpoint.
+- Do not make `/health/ready` unhealthy solely because the forex market is closed or a series has
+  no new candle; infrastructure readiness and decision-data freshness are separate concerns.
+- Use a deterministic weekly UTC session window initially and calibrate it to the selected broker
+  before relying on it for production decisions.
+
 ## Existing architecture principles
 
 - Trading execution remains manual; the system is decision support, not an auto-trading bot.

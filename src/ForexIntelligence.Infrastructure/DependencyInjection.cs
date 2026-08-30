@@ -16,6 +16,7 @@ public static class DependencyInjection
         ArgumentException.ThrowIfNullOrWhiteSpace(connectionString);
         services.AddDbContext<ForexDbContext>(options => options.UseNpgsql(connectionString));
         services.AddScoped<ICandleRepository, CandleRepository>();
+        services.AddScoped<IMarketDataReadRepository, CandleRepository>();
         services.AddScoped<IRefreshTokenRepository, RefreshTokenRepository>();
         services
             .AddHealthChecks()

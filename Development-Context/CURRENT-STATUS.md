@@ -25,6 +25,10 @@ move development into authenticated .NET ingestion and PostgreSQL persistence.
   It replays missing closed bars chronologically in batches capped at 100 records, advances a
   checkpoint only after bridge HTTP 202, and pauses rather than guessing across broker UTC-offset
   changes.
+- Authenticated `GET /api/market-data/status` reports deterministic freshness and recent gap
+  counts for every canonical instrument/timeframe series. It distinguishes `FRESH`, `STALE`,
+  `GAP_DETECTED`, `MARKET_CLOSED`, and `UNKNOWN` without making service readiness fail merely
+  because the weekly market session is closed.
 - Development-only `mt5-bridge/tools/mt5_simulator.py` sends the same heartbeat and candle
   contracts as the real exporter using only Python standard-library dependencies.
 - Simulator supports continuous heartbeat, `--once`, all 15 canonical instrument/timeframe
@@ -151,7 +155,7 @@ The temporary bridge process was stopped and its isolated test spool was removed
 
 ## Latest automated verification
 
-On 2026-08-29:
+On 2026-08-30:
 
 - The repository SDK pin was upgraded from `10.0.201` to `10.0.400` with
   `rollForward: latestPatch` to match the server development environment.
@@ -159,10 +163,11 @@ On 2026-08-29:
 - `PYTHONPATH=src python -m unittest discover -s tests -v` completed successfully with 82
   tests, including machine API-key delivery and validation.
 - `dotnet build ForexIntelligence.sln --no-restore --disable-build-servers -m:1` completed
-  successfully with no warnings.
+  successfully with no warnings in a compatibility run using local SDK 10.0.201 after a matching
+  restore; the repository remains pinned to SDK 10.0.400.
 - `dotnet test ForexIntelligence.sln --no-build --no-restore --disable-build-servers -m:1`
-  completed successfully with 27 tests passing, including PostgreSQL-backed overlap and
-  concurrent batch persistence coverage.
+  completed successfully with 37 tests passing: 10 Domain, 10 Application, and 17 Integration.
+  The target server still needs to repeat this checkpoint with the pinned SDK 10.0.400.
 
 ## Local soak/load verification
 
@@ -180,6 +185,8 @@ The temporary server was stopped and its spool was automatically removed after v
 ## Not yet verified
 
 - Compile and verify exporter version 0.5 checkpoint/backfill after a short target-terminal outage.
+- Run the new .NET market-data status tests with SDK 10.0.400 and verify the authenticated status
+  response against target PostgreSQL.
 - Implement broker-aware historical DST normalization before allowing automatic backfill across
   a detected UTC-offset transition.
 - Upgrade the target server from PostgreSQL 17.11 to the repository target PostgreSQL 18.x before

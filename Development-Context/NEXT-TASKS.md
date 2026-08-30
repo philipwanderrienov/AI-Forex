@@ -21,6 +21,8 @@ Tasks are ordered by current priority. Agents should compare `GPT` and `Codex` b
 17. [x] Design and implement durable per-instrument/timeframe checkpoints with bounded chronological candle backfill after restart or reconnect.
 18. [ ] Compile exporter version 0.5 and verify checkpoint catch-up after a short target-terminal outage that does not cross a broker UTC-offset transition.
 19. [ ] Design broker-aware historical timezone/DST normalization before supporting backfill across an offset transition.
+20. [x] Implement deterministic per-series freshness and recent gap detection with explicit weekend market-closed handling.
+21. [ ] Verify `GET /api/market-data/status` against target PostgreSQL and calibrate the canonical UTC weekly session window to the selected broker.
 
 Local PostgreSQL migration plus simulator -> bridge -> .NET -> PostgreSQL happy-path,
 duplicate-ACK, and backend outage/recovery verification completed on 2026-08-28. The dedicated

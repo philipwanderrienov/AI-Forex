@@ -26,6 +26,9 @@
 - Credential bridge sudah dikonfigurasi dan diverifikasi pada mesin target melalui environment
   dan .NET User Secrets. Tick/account telemetry serta normalisasi historical DST lintas perubahan
   offset belum diimplementasikan.
+- Backend menyediakan status freshness/gap terautentikasi untuk seluruh 15 seri. Evaluasi awal
+  memakai jendela pasar mingguan UTC deterministik, mengecualikan weekend dari gap, dan tetap
+  memisahkan kualitas data keputusan dari readiness infrastruktur.
 
 ## Tujuan
 

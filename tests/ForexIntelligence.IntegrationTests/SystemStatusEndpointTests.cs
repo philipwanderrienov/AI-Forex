@@ -18,4 +18,12 @@ public sealed class SystemStatusEndpointTests : IClassFixture<TestWebApplication
 
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
     }
+
+    [Fact]
+    public async Task GetMarketDataStatus_WithoutToken_ReturnsUnauthorized()
+    {
+        var response = await _client.GetAsync("/api/market-data/status");
+
+        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+    }
 }

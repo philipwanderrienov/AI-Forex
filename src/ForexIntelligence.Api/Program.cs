@@ -102,6 +102,7 @@ builder.Services.AddRateLimiter(options =>
 builder.Services.AddScoped<ITokenService, TokenService>();
 builder.Services.AddHostedService<RefreshTokenCleanupService>();
 builder.Services.AddScoped<IMarketDataService, MarketDataService>();
+builder.Services.AddScoped<IMarketDataStatusService, MarketDataStatusService>();
 builder.Services.AddInfrastructure(connectionString);
 
 var app = builder.Build();

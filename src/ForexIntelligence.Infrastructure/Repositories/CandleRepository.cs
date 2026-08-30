@@ -1,12 +1,37 @@
 using ForexIntelligence.Application.Interfaces.Repositories;
+using ForexIntelligence.Application.Models.MarketData;
 using ForexIntelligence.Domain.Entities;
+using ForexIntelligence.Domain.Enums;
 using ForexIntelligence.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 
 namespace ForexIntelligence.Infrastructure.Repositories;
 
-public sealed class CandleRepository(ForexDbContext dbContext) : ICandleRepository
+public sealed class CandleRepository(ForexDbContext dbContext) : ICandleRepository, IMarketDataReadRepository
 {
+    private static readonly string[] CanonicalInstruments = ["EURUSD", "GBPUSD", "EURGBP", "EURCHF", "XAUUSD"];
+    private static readonly Timeframe[] CanonicalTimeframes = [Timeframe.M15, Timeframe.H1, Timeframe.H4];
+
+    public async Task<IReadOnlyCollection<CandleObservation>> GetFinalCandlesSinceAsync(
+        DateTimeOffset since,
+        CancellationToken cancellationToken) =>
+        await dbContext.Candles
+            .AsNoTracking()
+            .Where(candle =>
+                candle.Status == CandleStatus.Final &&
+                CanonicalInstruments.Contains(candle.Instrument) &&
+                CanonicalTimeframes.Contains(candle.Timeframe) &&
+                candle.OpenTime >= since)
+            .OrderBy(candle => candle.Instrument)
+            .ThenBy(candle => candle.Timeframe)
+            .ThenBy(candle => candle.OpenTime)
+            .Select(candle => new CandleObservation(
+                candle.Instrument,
+                candle.Timeframe,
+                candle.OpenTime,
+                candle.CloseTime))
+            .ToArrayAsync(cancellationToken);
+
     public async Task AddAsync(Candle candle, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(candle);
