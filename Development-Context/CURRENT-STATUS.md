@@ -1,6 +1,6 @@
 # Current Development Status
 
-Last updated: 2026-08-29
+Last updated: 2026-08-31
 Owning branch for this update: `Codex`
 
 ## Current focus
@@ -117,6 +117,14 @@ through 212 across 30 stored batches. Gaps reflect sequences reserved before fai
 are valid; the sequence did not reset, the bridge spool drained to zero, and quarantine remained
 zero. Re-published overlapping candles remained duplicate-safe in canonical candle storage.
 
+On 2026-08-31, exporter version 0.5 completed its short target-terminal outage checkpoint test.
+The EA was detached for approximately 20 minutes and then attached again. Before the outage, the
+latest displayed M15 checkpoints were `2026-08-31T05:00:00Z` through sequence 113. On startup the
+exporter recovered `nextSequence=114`, published the next closed M15 candle for all five canonical
+instruments with checkpoint `2026-08-31T05:15:00Z`, and used sequences 114 through 118. The bridge
+continued accepting heartbeats and the backend persisted the resumed batches. This verifies
+checkpoint catch-up for a short outage that did not cross a broker UTC-offset transition.
+
 ## Locally verified by Codex
 
 On 2026-08-28, the local PostgreSQL schema was upgraded through EF Core migration
@@ -184,7 +192,6 @@ The temporary server was stopped and its spool was automatically removed after v
 
 ## Not yet verified
 
-- Compile and verify exporter version 0.5 checkpoint/backfill after a short target-terminal outage.
 - Run the new .NET market-data status tests with SDK 10.0.400 and verify the authenticated status
   response against target PostgreSQL.
 - Implement broker-aware historical DST normalization before allowing automatic backfill across
