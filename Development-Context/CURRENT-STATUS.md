@@ -1,6 +1,6 @@
 # Current Development Status
 
-Last updated: 2026-08-31
+Last updated: 2026-09-01
 Owning branch for this update: `Codex`
 
 ## Current focus
@@ -213,9 +213,43 @@ The temporary server was stopped and its spool was automatically removed after v
 
 ## Not yet verified
 
-- Run the new .NET market-data status tests with SDK 10.0.400 and verify the authenticated status
-  response against target PostgreSQL.
+- Verify the authenticated `GET /api/market-data/status` response against target PostgreSQL with
+  `tools/verify_market_data_status.py`. Confirm all 15 canonical series and compare status,
+  `lastCloseTime`, `ageMinutes`, and `gapCount` with the selected broker while the market is open,
+  around the weekly close/open boundary, and after a short outage.
+- Calibrate the initial Sunday 22:00 UTC through Friday 22:00 UTC market-session window in
+  `ForexMarketSchedule` against the selected broker before relying on it for production decisions.
 - Implement broker-aware historical DST normalization before allowing automatic backfill across
   a detected UTC-offset transition.
 - Upgrade the target server from PostgreSQL 17.11 to the repository target PostgreSQL 18.x before
   production deployment.
+
+## Recommended next development sequence
+
+1. Run the credential-safe market-data status verifier against the target server and record the
+   15-series result without committing credentials.
+2. Calibrate and test the broker's weekly UTC market-session boundaries, including market-open,
+   Friday close, Sunday open, and short-outage behavior.
+3. Design broker-aware historical timezone/DST normalization. The current exporter intentionally
+   pauses a series when its stored checkpoint offset differs from the current broker offset; do
+   not convert historical broker timestamps using only the current offset.
+4. Implement the agreed normalization and verify restart/backfill across a real or deterministic
+   UTC-offset transition without shifted, duplicated, or silently missing candles.
+5. Audit the remaining Phase 02 acceptance criteria before moving Phase 03 into primary focus.
+
+## Remaining Phase 02 scope and risks
+
+- The candle acquisition foundation is proven end to end, but Phase 02 as documented is not yet
+  complete. Remaining scope includes tick/spread acquisition, read-only account telemetry,
+  broker-chart comparison, detailed `NO_TICK`/`SYMBOL_DISABLED`/disconnect observability,
+  dashboard `WAIT` behavior, an operations and credential-rotation runbook, a policy test proving
+  the exporter cannot execute orders, and the minimum five-trading-day target soak test.
+- Historical DST normalization is the largest current correctness risk. Applying the present
+  broker offset to older bars can shift canonical UTC timestamps by one hour across a broker DST
+  transition. The design must define historical offset resolution, ambiguous/nonexistent local
+  times, checkpoint compatibility, and failure behavior before implementation.
+- The status service currently uses a deterministic fixed UTC weekly session as an initial model.
+  Its freshness and gap output is useful for target verification, but the session boundary must be
+  broker-calibrated before it becomes a production decision-data gate.
+- The immediate next checkpoint is target verification and broker-session calibration, not Phase
+  03 technical-indicator development.
