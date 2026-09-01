@@ -29,6 +29,10 @@ move development into authenticated .NET ingestion and PostgreSQL persistence.
   counts for every canonical instrument/timeframe series. It distinguishes `FRESH`, `STALE`,
   `GAP_DETECTED`, `MARKET_CLOSED`, and `UNKNOWN` without making service readiness fail merely
   because the weekly market session is closed.
+- `tools/verify_market_data_status.py` provides a credential-safe target verifier. It prompts for
+  the bootstrap password, obtains a short-lived token, calls the authenticated status endpoint,
+  and fails unless the response contains exactly the 15 canonical instrument/timeframe series
+  with valid status and gap fields.
 - Development-only `mt5-bridge/tools/mt5_simulator.py` sends the same heartbeat and candle
   contracts as the real exporter using only Python standard-library dependencies.
 - Simulator supports continuous heartbeat, `--once`, all 15 canonical instrument/timeframe
@@ -162,6 +166,23 @@ On 2026-08-25, the simulator failure/recovery path was verified against a live l
 The temporary bridge process was stopped and its isolated test spool was removed after verification.
 
 ## Latest automated verification
+
+On 2026-09-01, the Windows Codex workspace repeated the .NET checkpoint with the repository-pinned
+SDK `10.0.400`:
+
+- `dotnet restore ForexIntelligence.sln` completed successfully after refreshing the API package
+  cache;
+- `dotnet build ForexIntelligence.sln --no-restore --disable-build-servers -m:1` completed with
+  zero warnings and zero errors;
+- `dotnet test ForexIntelligence.sln --no-build --no-restore --disable-build-servers -m:1`
+  completed with all 37 tests passing: 10 Domain, 10 Application, and 17 Integration.
+- `python -m unittest tools/test_verify_market_data_status.py -v` completed with both target
+  verifier contract tests passing.
+
+The local PostgreSQL 18 service is present, but this Windows workspace has no API User Secrets
+file, so authenticated status verification against PostgreSQL was not attempted with guessed or
+hard-coded credentials. Target-server endpoint verification and broker-session calibration remain
+open.
 
 On 2026-08-30:
 
