@@ -1,6 +1,6 @@
 # Current Development Status
 
-Last updated: 2026-09-01
+Last updated: 2026-09-02
 Owning branch for this update: `Codex`
 
 ## Current focus
@@ -165,6 +165,38 @@ On 2026-08-25, the simulator failure/recovery path was verified against a live l
 
 The temporary bridge process was stopped and its isolated test spool was removed after verification.
 
+## Target-server status verification checkpoint
+
+On 2026-09-02, the authenticated market-data status verifier ran successfully against the target
+server API at `http://127.0.0.1:5204`. The API returned exactly all 15 canonical
+instrument/timeframe series and the verifier reported `PASS`. PostgreSQL readiness also returned
+`Healthy` after correcting the .NET User Secrets connection string so its `forex_app` password
+matched the database role. The observed series were still `GapDetected` and stale, so this proves
+the endpoint contract and database connectivity but does not yet prove current decision-data
+freshness or broker-session calibration.
+
+During this verification, the bridge publisher was first started without the active backend
+configuration and then with a bridge API key that did not match the .NET API. Pending envelopes
+therefore accumulated and were classified as permanent backend rejections. After restarting both
+processes with the .NET API using its User Secrets value and the bridge reading that same value,
+new batches reached PostgreSQL successfully: the API logged inserts into both `candles` and
+`market_data_batches`, and active spool depth returned to zero.
+
+The durable quarantine remains intentionally untouched at 493 envelopes. A read-only metadata
+audit found:
+
+- 478 `permanent_backend_rejection` entries with HTTP 401 caused by the temporary API-key
+  mismatch; these are candidates for controlled replay.
+- 15 `permanent_backend_rejection` entries with HTTP 409; do not replay these until their
+  batch/sequence conflicts are reviewed.
+
+Next resume point: stop the Python bridge, back up `mt5-bridge/spool/quarantine`, copy only the 478
+HTTP 401 payloads back to the pending spool using each metadata file's `originalName`, and restart
+the bridge with `MT5_BRIDGE_BACKEND_URL` targeting port 5204 and
+`MT5_BRIDGE_BACKEND_API_KEY` sourced from the matching .NET User Secret. Preserve the quarantine
+copies until replay reaches active depth zero and PostgreSQL/status verification confirms the
+records. Do not delete or replay the 15 HTTP 409 entries as part of that recovery.
+
 ## Latest automated verification
 
 On 2026-09-01, the Windows Codex workspace repeated the .NET checkpoint with the repository-pinned
@@ -213,10 +245,10 @@ The temporary server was stopped and its spool was automatically removed after v
 
 ## Not yet verified
 
-- Verify the authenticated `GET /api/market-data/status` response against target PostgreSQL with
-  `tools/verify_market_data_status.py`. Confirm all 15 canonical series and compare status,
-  `lastCloseTime`, `ageMinutes`, and `gapCount` with the selected broker while the market is open,
-  around the weekly close/open boundary, and after a short outage.
+- Recover and replay the 478 target-server quarantine entries caused by HTTP 401, then rerun
+  `tools/verify_market_data_status.py` and confirm current `lastCloseTime`, `ageMinutes`, and
+  `gapCount` against the selected broker. The 15-series response shape has passed; freshness,
+  weekly close/open behavior, and short-outage behavior remain unverified.
 - Calibrate the initial Sunday 22:00 UTC through Friday 22:00 UTC market-session window in
   `ForexMarketSchedule` against the selected broker before relying on it for production decisions.
 - Implement broker-aware historical DST normalization before allowing automatic backfill across
@@ -226,8 +258,8 @@ The temporary server was stopped and its spool was automatically removed after v
 
 ## Recommended next development sequence
 
-1. Run the credential-safe market-data status verifier against the target server and record the
-   15-series result without committing credentials.
+1. Recover the 478 HTTP 401 quarantine entries through a backed-up controlled replay, verify that
+   active spool depth drains to zero, and rerun the target status verifier.
 2. Calibrate and test the broker's weekly UTC market-session boundaries, including market-open,
    Friday close, Sunday open, and short-outage behavior.
 3. Design broker-aware historical timezone/DST normalization. The current exporter intentionally
