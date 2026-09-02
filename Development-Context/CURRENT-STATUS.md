@@ -190,12 +190,22 @@ audit found:
 - 15 `permanent_backend_rejection` entries with HTTP 409; do not replay these until their
   batch/sequence conflicts are reviewed.
 
-Next resume point: stop the Python bridge, back up `mt5-bridge/spool/quarantine`, copy only the 478
-HTTP 401 payloads back to the pending spool using each metadata file's `originalName`, and restart
-the bridge with `MT5_BRIDGE_BACKEND_URL` targeting port 5204 and
-`MT5_BRIDGE_BACKEND_API_KEY` sourced from the matching .NET User Secret. Preserve the quarantine
-copies until replay reaches active depth zero and PostgreSQL/status verification confirms the
-records. Do not delete or replay the 15 HTTP 409 entries as part of that recovery.
+On 2026-09-03, the target-server recovery was completed without changing source code. The operator
+stopped the Python bridge, created a backup of the quarantine, copied only the 478 HTTP 401
+payloads back to the active spool, and restarted the bridge with
+`MT5_BRIDGE_BACKEND_URL` targeting port 5204 and `MT5_BRIDGE_BACKEND_API_KEY` sourced from the
+matching .NET User Secret. Replay drained from 478 pending envelopes to zero while the API logged
+successful inserts into both `candles` and `market_data_batches`. After the EA and Algo Trading
+were enabled again, terminal health returned to `HEALTHY`, heartbeat age remained near zero, the
+active spool remained empty, and quarantine depth remained unchanged at 493.
+
+The quarantine and its backup remain intentionally preserved. They contain copies of the 478
+successfully replayed HTTP 401 payloads and the 15 HTTP 409 payloads that were not replayed. Review
+the batch/sequence conflicts before taking any action on those 15 entries. The currently running
+bridge receives its backend URL and API key from the launching terminal environment, so a terminal
+close or server restart still requires the same secret-loading startup sequence. Recommended next
+operational hardening: define managed startup services for the API and bridge with secure secret
+loading, and add a documented controlled-quarantine audit/replay procedure.
 
 ## Latest automated verification
 
