@@ -65,6 +65,12 @@ move development into authenticated .NET ingestion and PostgreSQL persistence.
 - `appsettings.Development.example.json` documents the complete development configuration
   shape using placeholders only.
 - Structured JSON logging and recursive secret redaction are implemented.
+- Lubuntu `systemd` unit templates and an installer are available for managed API/bridge startup.
+  Secrets remain in root-readable `/etc/forex-intelligence/*.env` files, the installer does not
+  auto-start services with placeholders, and the hardened bridge unit grants an explicit write
+  path only to its durable spool.
+- `tools/audit_bridge_quarantine.py` provides a read-only summary of rejection categories and
+  exposes only batch ID, source instance, sequence, and checksum for HTTP 409 ledger review.
 - The receiver returns `202 duplicate` for an identical retry, `409 batch_id_conflict` for conflicting batch reuse, `409 sequence_conflict` for conflicting source sequence reuse, and `507 spool_full` when capacity is exhausted.
 - The MQL5 exporter formats heartbeat and candle timestamps as canonical ISO-8601 UTC (`YYYY-MM-DDTHH:MM:SSZ`) rather than the dotted display format returned by `TimeToString`.
 - The MQL5 WebRequest timeout is configurable and defaults to 5000 ms, with diagnostic logging for non-2xx responses. This follows intermittent `status=1003` observations on the real MT5/Wine terminal with the earlier 1000 ms timeout.
@@ -207,7 +213,27 @@ close or server restart still requires the same secret-loading startup sequence.
 operational hardening: define managed startup services for the API and bridge with secure secret
 loading, and add a documented controlled-quarantine audit/replay procedure.
 
+On the same day, a controlled EA-only outage lasted approximately 52 minutes while the API and
+bridge remained running. Terminal health correctly became `STALE`. After reattaching the EA,
+sequence values continued in the 3700 range, missed M15 candles were published chronologically,
+the authenticated 15-series verifier passed, recent gap counts did not increase, active spool
+depth returned to zero, and quarantine depth remained 493. A read-only audit confirmed the 15
+preserved HTTP 409 entries; a sampled entry reused source sequence 206 with a different batch ID
+than the PostgreSQL ledger and is therefore a valid historical sequence conflict that must not be
+replayed.
+
 ## Latest automated verification
+
+On 2026-09-03, the managed-startup/quarantine-audit change passed:
+
+- `python -m unittest tools/test_audit_bridge_quarantine.py tools/test_verify_market_data_status.py -v`
+  with all 4 tests passing;
+- `PYTHONPATH=src python -m unittest discover -s tests -v` from `mt5-bridge/` with all
+  82 bridge tests passing; and
+- `bash -n scripts/install-server-services.sh` using Git Bash.
+
+Target installation and reboot verification of the systemd units remains intentionally pending;
+the installer does not activate services while environment files still contain placeholders.
 
 On 2026-09-01, the Windows Codex workspace repeated the .NET checkpoint with the repository-pinned
 SDK `10.0.400`:

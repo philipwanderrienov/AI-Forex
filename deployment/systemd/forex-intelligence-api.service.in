@@ -1,0 +1,24 @@
+[Unit]
+Description=Forex Intelligence .NET API
+After=network-online.target postgresql.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=@@SERVICE_USER@@
+WorkingDirectory=@@REPOSITORY_ROOT@@
+Environment=ASPNETCORE_ENVIRONMENT=Production
+Environment=ASPNETCORE_URLS=http://127.0.0.1:5204
+Environment=DOTNET_NOLOGO=true
+EnvironmentFile=/etc/forex-intelligence/api.env
+ExecStart=@@DOTNET_PATH@@ run --no-launch-profile --project @@REPOSITORY_ROOT@@/src/ForexIntelligence.Api/ForexIntelligence.Api.csproj
+Restart=on-failure
+RestartSec=5
+TimeoutStopSec=30
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ProtectHome=read-only
+
+[Install]
+WantedBy=multi-user.target

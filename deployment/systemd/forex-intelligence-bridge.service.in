@@ -1,0 +1,24 @@
+[Unit]
+Description=Forex Intelligence MT5 Python bridge
+After=network-online.target forex-intelligence-api.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=@@SERVICE_USER@@
+WorkingDirectory=@@REPOSITORY_ROOT@@/mt5-bridge
+Environment=PYTHONUNBUFFERED=1
+Environment=MT5_BRIDGE_SPOOL_PATH=@@REPOSITORY_ROOT@@/mt5-bridge/spool
+EnvironmentFile=/etc/forex-intelligence/bridge.env
+ExecStart=@@REPOSITORY_ROOT@@/mt5-bridge/.venv/bin/python -m forex_intelligence_bridge.server
+Restart=on-failure
+RestartSec=5
+TimeoutStopSec=30
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=read-only
+ReadWritePaths=@@REPOSITORY_ROOT@@/mt5-bridge/spool
+
+[Install]
+WantedBy=multi-user.target
