@@ -7,6 +7,7 @@ repository_root=$(cd -- "$script_directory/.." && pwd)
 template_directory="$repository_root/deployment/runit"
 service_user=${SUDO_USER:-${USER:?USER is not set}}
 dotnet_path=$(command -v dotnet || true)
+pg_ctlcluster_path=$(command -v pg_ctlcluster || true)
 
 if [[ $(ps -p 1 -o comm= | tr -d ' ') != runit ]]; then
     echo 'Installer ini hanya untuk server antiX yang sedang memakai runit.' >&2
@@ -14,6 +15,10 @@ if [[ $(ps -p 1 -o comm= | tr -d ' ') != runit ]]; then
 fi
 if [[ -z $dotnet_path ]]; then
     echo 'dotnet tidak ditemukan di PATH.' >&2
+    exit 1
+fi
+if [[ -z $pg_ctlcluster_path ]]; then
+    echo 'pg_ctlcluster tidak ditemukan di PATH.' >&2
     exit 1
 fi
 for command_name in chpst curl sv svlogd; do
@@ -32,6 +37,17 @@ if [[ ! -d "$repository_root/mt5-bridge/spool" ]]; then
 fi
 if [[ ! -d /etc/sv || ! -L /etc/service ]]; then
     echo 'Layout service runit antiX tidak ditemukan.' >&2
+    exit 1
+fi
+
+mapfile -t postgresql_clusters < <(pg_lsclusters --no-header | awk '$3 == 5432 { print $1 " " $2 " " $5 }')
+if [[ ${#postgresql_clusters[@]} -ne 1 ]]; then
+    echo 'Harus ada tepat satu cluster PostgreSQL pada port 5432.' >&2
+    exit 1
+fi
+read -r postgresql_version postgresql_cluster postgresql_owner <<<"${postgresql_clusters[0]}"
+if [[ $postgresql_owner != postgres ]]; then
+    echo 'Cluster PostgreSQL port 5432 harus dimiliki user postgres.' >&2
     exit 1
 fi
 
@@ -56,6 +72,13 @@ render_run_script "$template_directory/forex-intelligence-api.run.in" \
     "$temporary_directory/api-run"
 render_run_script "$template_directory/forex-intelligence-bridge.run.in" \
     "$temporary_directory/bridge-run"
+sed \
+    -e "s|@@PG_CTLCLUSTER_PATH@@|$pg_ctlcluster_path|g" \
+    -e "s|@@POSTGRESQL_VERSION@@|$postgresql_version|g" \
+    -e "s|@@POSTGRESQL_CLUSTER@@|$postgresql_cluster|g" \
+    "$template_directory/forex-intelligence-postgresql.run.in" \
+    >"$temporary_directory/postgresql-run"
+chmod 0755 "$temporary_directory/postgresql-run"
 
 sudo install -d -o root -g root -m 0700 /etc/forex-intelligence
 for environment_name in api bridge; do
@@ -69,7 +92,7 @@ for environment_name in api bridge; do
     fi
 done
 
-for service_name in api bridge; do
+for service_name in postgresql api bridge; do
     service_directory="/etc/sv/forex-intelligence-$service_name"
     sudo install -d -o root -g root -m 0755 "$service_directory/log"
     sudo install -o root -g root -m 0755 \

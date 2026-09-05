@@ -251,6 +251,13 @@ logging defect was then found: Python structured logs use stderr, while the init
 only piped stdout to `svlogd`. Both run templates now merge stderr into stdout before starting the
 application. Target reinstall/restart and reboot verification remain pending.
 
+The first reboot showed that antiX runit does not execute PostgreSQL's existing SysV runlevel
+links: PostgreSQL 17 `main` remained down, API readiness correctly returned 503, and the bridge
+correctly waited instead of opening its receiver. Starting PostgreSQL manually restored API and
+bridge automatically. The runit deployment now also supervises the single PostgreSQL cluster on
+port 5432 in foreground mode as user `postgres`; target transition and a second reboot remain
+pending.
+
 On 2026-09-03, the managed-startup/quarantine-audit change passed:
 
 - `python -m unittest tools/test_audit_bridge_quarantine.py tools/test_verify_market_data_status.py -v`
