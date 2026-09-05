@@ -348,8 +348,9 @@ The temporary server was stopped and its spool was automatically removed after v
 
 ## Recommended next development sequence
 
-1. Detect the active antiX init system, add compatible managed API/bridge startup with secure
-   secret loading, then install and reboot-verify it on the target.
+1. Replace runit API startup via `dotnet run` with a versioned `dotnet publish` artifact, atomic
+   activation, post-deploy health verification, and rollback. This should eliminate the observed
+   roughly 50-second source build/start delay during API recovery.
 2. Calibrate and test the broker's weekly UTC market-session boundaries, including market-open,
    Friday close, Sunday open, and short-outage behavior.
 3. Design broker-aware historical timezone/DST normalization. The current exporter intentionally
@@ -364,8 +365,8 @@ The temporary server was stopped and its spool was automatically removed after v
 - The candle acquisition foundation is proven end to end, but Phase 02 as documented is not yet
   complete. Remaining scope includes tick/spread acquisition, read-only account telemetry,
   broker-chart comparison, detailed `NO_TICK`/`SYMBOL_DISABLED`/disconnect observability,
-  dashboard `WAIT` behavior, an operations and credential-rotation runbook, a policy test proving
-  the exporter cannot execute orders, and the minimum five-trading-day target soak test.
+  dashboard `WAIT` behavior, an operations and credential-rotation runbook, and the minimum
+  five-trading-day target soak test. The read-only exporter policy test is complete.
 - Historical DST normalization is the largest current correctness risk. Applying the present
   broker offset to older bars can shift canonical UTC timestamps by one hour across a broker DST
   transition. The design must define historical offset resolution, ambiguous/nonexistent local

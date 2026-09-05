@@ -29,6 +29,8 @@ Tasks are ordered by current priority. Agents should compare `GPT` and `Codex` b
     transferring the existing local secrets.
 24. [x] Expand the exporter source policy test to reject direct order APIs, `CTrade` methods,
     trade request primitives, and trading action constants.
+25. [ ] Replace the runit API command from source-based `dotnet run` to a versioned
+    `dotnet publish` release artifact with atomic activation, health verification, and rollback.
 
 Local PostgreSQL migration plus simulator -> bridge -> .NET -> PostgreSQL happy-path,
 duplicate-ACK, and backend outage/recovery verification completed on 2026-08-28. The dedicated
@@ -38,6 +40,7 @@ three-timeframe matrix. The next hardening checkpoint is restart-safe exporter s
 version 0.4 was verified with ledger sequences continuing through 212, active spool depth zero,
 and quarantine depth zero. Exporter version 0.5 ACK-gated checkpoint catch-up was then verified
 after a short target-terminal outage without crossing a broker UTC-offset transition. The next
-checkpoint is target verification and broker calibration of the market-data status endpoint.
+operational hardening checkpoint is a published API release artifact with fast startup and
+rollback, followed by target broker calibration of the market-data status endpoint.
 
 Do not start Python -> .NET publishing merely because it is later in Phase 02; finish and verify the MT5/Python acquisition boundary first.
