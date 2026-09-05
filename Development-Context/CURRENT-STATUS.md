@@ -1,12 +1,20 @@
 # Current Development Status
 
-Last updated: 2026-09-02
+Last updated: 2026-09-05
 Owning branch for this update: `Codex`
 
 ## Current focus
 
 Phase 02 market-data acquisition. The MT5/Python acquisition boundary is complete enough to
 move development into authenticated .NET ingestion and PostgreSQL persistence.
+
+The dedicated target server is antiX Linux, not Lubuntu. The existing `systemd` deployment
+tooling must not be installed there; managed startup must first be adapted to the active antiX
+init system.
+
+The exporter default source instance is now `antix-mt5-primary`, preventing new bridge logs and
+ledger rows from labeling the target as Lubuntu. Applying this identity on the existing terminal
+is an explicit migration because source identity owns independent sequence and checkpoint state.
 
 ## Implemented
 
@@ -65,10 +73,13 @@ move development into authenticated .NET ingestion and PostgreSQL persistence.
 - `appsettings.Development.example.json` documents the complete development configuration
   shape using placeholders only.
 - Structured JSON logging and recursive secret redaction are implemented.
-- Lubuntu `systemd` unit templates and an installer are available for managed API/bridge startup.
+- Native antiX runit definitions and an installer are available for managed API/bridge startup.
   Secrets remain in root-readable `/etc/forex-intelligence/*.env` files, the installer does not
-  auto-start services with placeholders, and the hardened bridge unit grants an explicit write
-  path only to its durable spool.
+  activate services, both applications run as the non-root repository owner, bridge startup waits
+  for API readiness, and `svlogd` owns bounded service logs. Legacy `systemd` templates remain for
+  other Linux targets but are not used on the antiX server.
+- The exporter source policy test rejects direct order APIs, `CTrade` order/position methods,
+  `MqlTradeRequest`, and trading action constants so the acquisition boundary remains read-only.
 - `tools/audit_bridge_quarantine.py` provides a read-only summary of rejection categories and
   exposes only batch ID, source instance, sequence, and checksum for HTTP 409 ledger review.
 - The receiver returns `202 duplicate` for an identical retry, `409 batch_id_conflict` for conflicting batch reuse, `409 sequence_conflict` for conflicting source sequence reuse, and `507 spool_full` when capacity is exhausted.
@@ -224,6 +235,16 @@ replayed.
 
 ## Latest automated verification
 
+On 2026-09-05, the antiX/runit and exporter identity update passed:
+
+- shell syntax validation for the runit installer and all three run-script templates;
+- `PYTHONPATH=src python3 -m unittest discover -s tests -v` with all 82 bridge tests passing;
+- `dotnet test ForexIntelligence.sln --no-restore --disable-build-servers -m:1` with all 37
+  tests passing; and
+- `git diff --check` with no whitespace errors.
+
+Target installation and reboot verification of the runit services remains pending.
+
 On 2026-09-03, the managed-startup/quarantine-audit change passed:
 
 - `python -m unittest tools/test_audit_bridge_quarantine.py tools/test_verify_market_data_status.py -v`
@@ -281,10 +302,10 @@ The temporary server was stopped and its spool was automatically removed after v
 
 ## Not yet verified
 
-- Recover and replay the 478 target-server quarantine entries caused by HTTP 401, then rerun
-  `tools/verify_market_data_status.py` and confirm current `lastCloseTime`, `ageMinutes`, and
-  `gapCount` against the selected broker. The 15-series response shape has passed; freshness,
-  weekly close/open behavior, and short-outage behavior remain unverified.
+- Calibrate current `lastCloseTime`, `ageMinutes`, and `gapCount` expectations against the
+  selected broker at weekly close/open boundaries. The 478 HTTP 401 quarantine payloads were
+  already replayed successfully and short-outage recovery passed; broker-session boundary
+  calibration remains unverified.
 - Calibrate the initial Sunday 22:00 UTC through Friday 22:00 UTC market-session window in
   `ForexMarketSchedule` against the selected broker before relying on it for production decisions.
 - Implement broker-aware historical DST normalization before allowing automatic backfill across
@@ -294,8 +315,8 @@ The temporary server was stopped and its spool was automatically removed after v
 
 ## Recommended next development sequence
 
-1. Recover the 478 HTTP 401 quarantine entries through a backed-up controlled replay, verify that
-   active spool depth drains to zero, and rerun the target status verifier.
+1. Detect the active antiX init system, add compatible managed API/bridge startup with secure
+   secret loading, then install and reboot-verify it on the target.
 2. Calibrate and test the broker's weekly UTC market-session boundaries, including market-open,
    Friday close, Sunday open, and short-outage behavior.
 3. Design broker-aware historical timezone/DST normalization. The current exporter intentionally

@@ -102,7 +102,7 @@ class EnvelopeSpoolTests(unittest.TestCase):
             first = valid_envelope()
             second = copy.deepcopy(first)
             second["batchId"] = "01J5J5Y22B8NKZ4M6KW7MPNN6D"
-            second["sourceInstanceId"] = "lubuntu-mt5-secondary"
+            second["sourceInstanceId"] = "antix-mt5-secondary"
 
             spool.enqueue(first)
             spool.enqueue(second)

@@ -80,7 +80,7 @@ public sealed class BridgeIngestionEndpointTests
         {
             schemaVersion = "mt5-envelope.v1",
             batchId = "01J5J5Y22B8NKZ4M6KW7MPNN6C",
-            sourceInstanceId = "lubuntu-mt5-primary",
+            sourceInstanceId = "antix-mt5-primary",
             brokerServerAlias = "demo-primary",
             sequence = 7,
             sentAt = "2026-08-28T08:00:01Z",

@@ -1,0 +1,27 @@
+#!/bin/sh
+
+set -eu
+
+environment_file=/etc/forex-intelligence/bridge.env
+if [ ! -r "$environment_file" ]; then
+    echo "Missing environment file: $environment_file" >&2
+    exit 1
+fi
+
+set -a
+# The file is root-owned operational configuration and must use shell-safe quoting.
+. "$environment_file"
+set +a
+
+export PYTHONUNBUFFERED=1
+export MT5_BRIDGE_SPOOL_PATH='@@REPOSITORY_ROOT@@/mt5-bridge/spool'
+
+until curl -fsS --max-time 2 http://127.0.0.1:5204/health/ready >/dev/null; do
+    echo 'Waiting for Forex Intelligence API readiness.' >&2
+    sleep 2
+done
+
+cd '@@REPOSITORY_ROOT@@/mt5-bridge'
+exec chpst -u '@@SERVICE_USER@@' \
+    '@@REPOSITORY_ROOT@@/mt5-bridge/.venv/bin/python' \
+    -m forex_intelligence_bridge.server

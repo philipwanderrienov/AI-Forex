@@ -4,7 +4,7 @@
 
 input string HeartbeatUrl = "http://127.0.0.1:8001/v1/mt5/heartbeat";
 input string EnvelopeUrl = "http://127.0.0.1:8001/v1/mt5/envelopes";
-input string SourceInstanceId = "lubuntu-mt5-primary";
+input string SourceInstanceId = "antix-mt5-primary";
 input string BrokerServerAlias = "demo-primary";
 
 // Broker symbols are configurable because some brokers append suffixes/prefixes.

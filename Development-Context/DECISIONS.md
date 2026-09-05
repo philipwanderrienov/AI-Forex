@@ -45,6 +45,16 @@ The MT5 simulator must not invent a separate dummy schema. It must emit the same
 - Use a deterministic weekly UTC session window initially and calibrate it to the selected broker
   before relying on it for production decisions.
 
+## 2026-09-05 — Target server operating system
+
+- The dedicated target server runs antiX Linux, not Lubuntu.
+- Do not assume `systemd` or use the Lubuntu `systemd` installer on the target.
+- Detect and document the active antiX init system before implementing managed startup; support
+  that init system while preserving non-root execution and external root-readable secret files.
+- New exporter deployments use `antix-mt5-primary` as the source instance so bridge logs and new
+  ledger rows identify the actual target OS. Existing `lubuntu-mt5-primary` ledger rows remain
+  immutable historical records and must not be rewritten.
+
 ## Existing architecture principles
 
 - Trading execution remains manual; the system is decision support, not an auto-trading bot.

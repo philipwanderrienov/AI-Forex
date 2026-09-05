@@ -1,0 +1,22 @@
+#!/bin/sh
+
+set -eu
+
+environment_file=/etc/forex-intelligence/api.env
+if [ ! -r "$environment_file" ]; then
+    echo "Missing environment file: $environment_file" >&2
+    exit 1
+fi
+
+set -a
+# The file is root-owned operational configuration and must use shell-safe quoting.
+. "$environment_file"
+set +a
+
+export ASPNETCORE_ENVIRONMENT=Production
+export ASPNETCORE_URLS=http://127.0.0.1:5204
+export DOTNET_NOLOGO=true
+
+cd '@@REPOSITORY_ROOT@@'
+exec chpst -u '@@SERVICE_USER@@' '@@DOTNET_PATH@@' run --no-launch-profile \
+    --project '@@REPOSITORY_ROOT@@/src/ForexIntelligence.Api/ForexIntelligence.Api.csproj'

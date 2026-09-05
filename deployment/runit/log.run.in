@@ -1,0 +1,7 @@
+#!/bin/sh
+
+set -eu
+
+log_directory='@@LOG_DIRECTORY@@'
+install -d -o root -g adm -m 0750 "$log_directory"
+exec chpst -u root:adm svlogd -tt "$log_directory"

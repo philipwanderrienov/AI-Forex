@@ -136,10 +136,10 @@ Lihat [panduan bridge](mt5-bridge/README.md). Jalur belajar pemula tersedia di [
 Jangan membuka Python receiver port `8001` ke jaringan. Hanya endpoint HTTPS .NET yang perlu
 dapat dijangkau oleh publisher dari laptop server.
 
-Untuk managed startup API dan bridge pada Lubuntu, gunakan
-[`deployment/systemd/README.md`](deployment/systemd/README.md). Service mengambil secret dari
+Untuk managed startup API dan bridge pada server antiX, gunakan
+[`deployment/runit/README.md`](deployment/runit/README.md). Service mengambil secret dari
 `/etc/forex-intelligence`, bukan dari repository, dan tidak diaktifkan otomatis oleh installer
-sebelum operator memeriksa konfigurasi.
+sebelum operator memeriksa konfigurasi. Template `systemd` lama tidak digunakan pada target antiX.
 
 Audit quarantine secara read-only dapat dijalankan dari root repository:
 

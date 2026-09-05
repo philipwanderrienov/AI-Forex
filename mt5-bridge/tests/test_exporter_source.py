@@ -19,12 +19,33 @@ class ExporterSourcePolicyTests(unittest.TestCase):
         forbidden_calls = (
             "OrderSend",
             "OrderSendAsync",
+            "OrderDelete",
+            "OrderModify",
+            "Buy",
+            "Sell",
+            "BuyLimit",
+            "SellLimit",
+            "BuyStop",
+            "SellStop",
+            "BuyStopLimit",
+            "SellStopLimit",
             "PositionClose",
+            "PositionCloseBy",
             "PositionModify",
         )
         for call in forbidden_calls:
             with self.subTest(call=call):
                 self.assertIsNone(re.search(rf"\b{call}\s*\(", self.source))
+
+        forbidden_trade_primitives = (
+            r"#\s*include\s*[<\"]Trade[/\\]Trade\.mqh[>\"]",
+            r"\bCTrade\b",
+            r"\bMqlTradeRequest\b",
+            r"\bTRADE_ACTION_[A-Z_]+\b",
+        )
+        for pattern in forbidden_trade_primitives:
+            with self.subTest(pattern=pattern):
+                self.assertIsNone(re.search(pattern, self.source))
 
     def test_backfill_is_bounded_by_contract_batch_limit(self) -> None:
         self.assertIn("MaxBackfillBarsPerSeries<1 || MaxBackfillBarsPerSeries>100", self.source)

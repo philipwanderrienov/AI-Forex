@@ -10,7 +10,7 @@ Untuk memahami urutan kerja source Python tanpa membaca kode terlebih dahulu, li
 
 ![Flowchart program Python MT5 Bridge](docs/python-program-flowchart.png)
 
-Bridge ini berjalan native di Lubuntu dan hanya menerima data dari EA melalui `127.0.0.1`.
+Bridge ini berjalan native di server antiX dan hanya menerima data dari EA melalui `127.0.0.1`.
 Bridge menerima heartbeat starter dan envelope candle `mt5-envelope.v1`, lalu memvalidasi
 kontrak canonical dan menyimpan batch secara atomik ke durable FIFO spool sebelum memberikan
 respons `202 Accepted`. Jika URL backend dan API key dikonfigurasi, proses receiver menjalankan

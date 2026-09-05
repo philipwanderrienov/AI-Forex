@@ -14,7 +14,7 @@ def valid_envelope():
     payload = {
         "schemaVersion": "mt5-envelope.v1",
         "batchId": "01J5J5Y22B8NKZ4M6KW7MPNN6C",
-        "sourceInstanceId": "lubuntu-mt5-primary",
+        "sourceInstanceId": "antix-mt5-primary",
         "brokerServerAlias": "primary-demo",
         "sequence": 18442,
         "sentAt": "2026-08-17T08:15:04.200Z",
@@ -171,7 +171,7 @@ class HeartbeatTests(unittest.TestCase):
     def test_valid_heartbeat_is_accepted(self):
         heartbeat = {
             "schemaVersion": "mt5-heartbeat.v1",
-            "sourceInstanceId": "lubuntu-mt5-primary",
+            "sourceInstanceId": "antix-mt5-primary",
             "sentAt": "2026-08-20T01:00:00Z",
         }
         self.assertIs(heartbeat, validate_heartbeat(heartbeat))
@@ -179,7 +179,7 @@ class HeartbeatTests(unittest.TestCase):
     def test_mt5_legacy_utc_heartbeat_is_accepted(self):
         heartbeat = {
             "schemaVersion": "mt5-heartbeat.v1",
-            "sourceInstanceId": "lubuntu-mt5-primary",
+            "sourceInstanceId": "antix-mt5-primary",
             "sentAt": "2026.08.20 01:00:00",
         }
         self.assertIs(heartbeat, validate_heartbeat(heartbeat))
@@ -187,7 +187,7 @@ class HeartbeatTests(unittest.TestCase):
     def test_wrong_schema_version_is_rejected(self):
         heartbeat = {
             "schemaVersion": "mt5-heartbeat.v2",
-            "sourceInstanceId": "lubuntu-mt5-primary",
+            "sourceInstanceId": "antix-mt5-primary",
             "sentAt": "2026-08-20T01:00:00Z",
         }
         with self.assertRaises(ContractValidationError) as context:
@@ -197,7 +197,7 @@ class HeartbeatTests(unittest.TestCase):
     def test_non_utc_timestamp_is_rejected(self):
         heartbeat = {
             "schemaVersion": "mt5-heartbeat.v1",
-            "sourceInstanceId": "lubuntu-mt5-primary",
+            "sourceInstanceId": "antix-mt5-primary",
             "sentAt": "2026-08-20T08:00:00+07:00",
         }
         with self.assertRaises(ContractValidationError) as context:

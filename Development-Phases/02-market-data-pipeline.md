@@ -29,6 +29,8 @@
 - Backend menyediakan status freshness/gap terautentikasi untuk seluruh 15 seri. Evaluasi awal
   memakai jendela pasar mingguan UTC deterministik, mengecualikan weekend dari gap, dan tetap
   memisahkan kualitas data keputusan dari readiness infrastruktur.
+- Policy test exporter menolak API order langsung, metode trading `CTrade`, `MqlTradeRequest`,
+  dan konstanta aksi trading agar boundary akuisisi tetap read-only.
 
 ## Tujuan
 
