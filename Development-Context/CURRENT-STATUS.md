@@ -245,6 +245,12 @@ On 2026-09-05, the antiX/runit and exporter identity update passed:
 
 Target installation and reboot verification of the runit services remains pending.
 
+During target activation, the API and bridge both ran successfully under runit and the bridge
+accepted the new `antix-mt5-primary` heartbeat and candle batches with an empty active spool. A
+logging defect was then found: Python structured logs use stderr, while the initial runit template
+only piped stdout to `svlogd`. Both run templates now merge stderr into stdout before starting the
+application. Target reinstall/restart and reboot verification remain pending.
+
 On 2026-09-03, the managed-startup/quarantine-audit change passed:
 
 - `python -m unittest tools/test_audit_bridge_quarantine.py tools/test_verify_market_data_status.py -v`

@@ -18,5 +18,6 @@ export ASPNETCORE_URLS=http://127.0.0.1:5204
 export DOTNET_NOLOGO=true
 
 cd '@@REPOSITORY_ROOT@@'
+exec 2>&1
 exec chpst -u '@@SERVICE_USER@@' '@@DOTNET_PATH@@' run --no-launch-profile \
     --project '@@REPOSITORY_ROOT@@/src/ForexIntelligence.Api/ForexIntelligence.Api.csproj'

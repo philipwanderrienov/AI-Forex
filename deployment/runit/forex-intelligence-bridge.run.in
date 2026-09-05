@@ -22,6 +22,7 @@ until curl -fsS --max-time 2 http://127.0.0.1:5204/health/ready >/dev/null; do
 done
 
 cd '@@REPOSITORY_ROOT@@/mt5-bridge'
+exec 2>&1
 exec chpst -u '@@SERVICE_USER@@' \
     '@@REPOSITORY_ROOT@@/mt5-bridge/.venv/bin/python' \
     -m forex_intelligence_bridge.server
