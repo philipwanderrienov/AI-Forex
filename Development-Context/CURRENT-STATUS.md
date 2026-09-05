@@ -259,6 +259,11 @@ cluster could not read its configured snake-oil TLS private key. The service now
 package-provided `pg_ctlcluster` wrapper as root; that supported wrapper performs PostgreSQL's own
 privilege transition while retaining the required cluster startup behavior.
 
+The target then exposed a stop-control detail: a plain `sv restart` sent SIGTERM to the foreground
+`pg_ctlcluster` wrapper and timed out while the database remained online. The runit definition now
+installs `control/d` and `control/t` handlers that request a package-managed fast cluster shutdown
+through `pg_ctlcluster stop` before runit restarts or leaves the service down.
+
 The corrected target transition and second reboot then passed. Runit automatically started
 PostgreSQL 17 `main`, the .NET API, both `svlogd` pipelines, and the Python bridge. PostgreSQL
 accepted localhost connections, `/health/ready` returned `Healthy`, and the bridge initially

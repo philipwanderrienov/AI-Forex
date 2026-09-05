@@ -63,5 +63,9 @@ sudo tail -F /var/log/forex-intelligence/bridge/current
 sudo tail -F /var/log/forex-intelligence/postgresql/current
 ```
 
+Handler `control/d` dan `control/t` menghentikan cluster melalui `pg_ctlcluster stop`, sehingga
+`sv down` dan `sv restart` memakai shutdown PostgreSQL yang terkontrol alih-alih hanya mengirim
+SIGTERM ke wrapper foreground.
+
 Setelah reboot, periksa kedua status, API readiness, terminal health, spool depth, dan quarantine
 depth. Jangan menghapus atau replay quarantine secara otomatis.

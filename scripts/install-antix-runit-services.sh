@@ -79,6 +79,13 @@ sed \
     "$template_directory/forex-intelligence-postgresql.run.in" \
     >"$temporary_directory/postgresql-run"
 chmod 0755 "$temporary_directory/postgresql-run"
+sed \
+    -e "s|@@PG_CTLCLUSTER_PATH@@|$pg_ctlcluster_path|g" \
+    -e "s|@@POSTGRESQL_VERSION@@|$postgresql_version|g" \
+    -e "s|@@POSTGRESQL_CLUSTER@@|$postgresql_cluster|g" \
+    "$template_directory/forex-intelligence-postgresql.stop.in" \
+    >"$temporary_directory/postgresql-stop"
+chmod 0755 "$temporary_directory/postgresql-stop"
 
 sudo install -d -o root -g root -m 0700 /etc/forex-intelligence
 for environment_name in api bridge; do
@@ -90,6 +97,14 @@ for environment_name in api bridge; do
     else
         echo "Dipertahankan: $environment_path"
     fi
+done
+
+sudo install -d -o root -g root -m 0755 \
+    /etc/sv/forex-intelligence-postgresql/control
+for control_name in d t; do
+    sudo install -o root -g root -m 0755 \
+        "$temporary_directory/postgresql-stop" \
+        "/etc/sv/forex-intelligence-postgresql/control/$control_name"
 done
 
 for service_name in postgresql api bridge; do
