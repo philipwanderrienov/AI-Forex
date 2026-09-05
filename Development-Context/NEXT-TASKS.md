@@ -24,7 +24,7 @@ Tasks are ordered by current priority. Agents should compare `GPT` and `Codex` b
 20. [x] Implement deterministic per-series freshness and recent gap detection with explicit weekend market-closed handling.
 21. [ ] Verify `GET /api/market-data/status` against target PostgreSQL and calibrate the canonical UTC weekly session window to the selected broker.
 22. [x] Add managed Lubuntu `systemd` startup templates/installer with external secret files, plus a read-only quarantine audit tool.
-23. [ ] Replace the Lubuntu-specific managed-startup path with one compatible with the target
+23. [x] Replace the Lubuntu-specific managed-startup path with one compatible with the target
     antiX init system, then install and reboot-verify PostgreSQL/API/bridge startup after safely
     transferring the existing local secrets.
 24. [x] Expand the exporter source policy test to reject direct order APIs, `CTrade` methods,

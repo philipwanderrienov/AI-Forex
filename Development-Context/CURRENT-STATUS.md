@@ -218,11 +218,9 @@ active spool remained empty, and quarantine depth remained unchanged at 493.
 
 The quarantine and its backup remain intentionally preserved. They contain copies of the 478
 successfully replayed HTTP 401 payloads and the 15 HTTP 409 payloads that were not replayed. Review
-the batch/sequence conflicts before taking any action on those 15 entries. The currently running
-bridge receives its backend URL and API key from the launching terminal environment, so a terminal
-close or server restart still requires the same secret-loading startup sequence. Recommended next
-operational hardening: define managed startup services for the API and bridge with secure secret
-loading, and add a documented controlled-quarantine audit/replay procedure.
+the batch/sequence conflicts before taking any action on those 15 entries. The earlier terminal-
+environment startup was superseded on 2026-09-05 by managed antiX runit services with root-only
+environment files.
 
 On the same day, a controlled EA-only outage lasted approximately 52 minutes while the API and
 bridge remained running. Terminal health correctly became `STALE`. After reattaching the EA,
@@ -243,26 +241,31 @@ On 2026-09-05, the antiX/runit and exporter identity update passed:
   tests passing; and
 - `git diff --check` with no whitespace errors.
 
-Target installation and reboot verification of the runit services remains pending.
-
 During target activation, the API and bridge both ran successfully under runit and the bridge
 accepted the new `antix-mt5-primary` heartbeat and candle batches with an empty active spool. A
 logging defect was then found: Python structured logs use stderr, while the initial runit template
 only piped stdout to `svlogd`. Both run templates now merge stderr into stdout before starting the
-application. Target reinstall/restart and reboot verification remain pending.
+application.
 
 The first reboot showed that antiX runit does not execute PostgreSQL's existing SysV runlevel
 links: PostgreSQL 17 `main` remained down, API readiness correctly returned 503, and the bridge
 correctly waited instead of opening its receiver. Starting PostgreSQL manually restored API and
 bridge automatically. The runit deployment now also supervises the single PostgreSQL cluster on
-port 5432 in foreground mode as user `postgres`; target transition and a second reboot remain
-pending.
+port 5432 in foreground mode.
 
 The first target PostgreSQL runit attempt exposed an antiX privilege detail: launching
 `pg_ctlcluster` beneath `chpst -u postgres` discarded the `ssl-cert` supplementary group, so the
 cluster could not read its configured snake-oil TLS private key. The service now starts the
 package-provided `pg_ctlcluster` wrapper as root; that supported wrapper performs PostgreSQL's own
 privilege transition while retaining the required cluster startup behavior.
+
+The corrected target transition and second reboot then passed. Runit automatically started
+PostgreSQL 17 `main`, the .NET API, both `svlogd` pipelines, and the Python bridge. PostgreSQL
+accepted localhost connections, `/health/ready` returned `Healthy`, and the bridge initially
+reported terminal `UNKNOWN` as expected before MT5 started. After MT5 and the updated EA started,
+terminal status returned to `HEALTHY` with source instance `antix-mt5-primary`; active spool depth
+was 0 and preserved quarantine depth remained 493. No manual service start was required after the
+successful reboot.
 
 On 2026-09-03, the managed-startup/quarantine-audit change passed:
 
