@@ -272,6 +272,12 @@ terminal status returned to `HEALTHY` with source instance `antix-mt5-primary`; 
 was 0 and preserved quarantine depth remained 493. No manual service start was required after the
 successful reboot.
 
+The PostgreSQL control-handler follow-up also passed on the target. `sv down` completed a clean
+cluster shutdown, the corrected runit service started PostgreSQL with localhost connections
+available, and the final PostgreSQL/API/bridge recovery showed all three services continuously
+`run`. API and terminal health returned to `Healthy`, active spool depth remained zero, quarantine
+depth remained 493, and PostgreSQL no longer reported the stale `got TERM` state.
+
 On 2026-09-03, the managed-startup/quarantine-audit change passed:
 
 - `python -m unittest tools/test_audit_bridge_quarantine.py tools/test_verify_market_data_status.py -v`
