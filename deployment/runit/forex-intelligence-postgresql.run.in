@@ -3,6 +3,6 @@
 set -eu
 
 exec 2>&1
-exec chpst -u postgres '@@PG_CTLCLUSTER_PATH@@' \
+exec '@@PG_CTLCLUSTER_PATH@@' \
     --skip-systemctl-redirect --foreground \
     '@@POSTGRESQL_VERSION@@' '@@POSTGRESQL_CLUSTER@@' start

@@ -258,6 +258,12 @@ bridge automatically. The runit deployment now also supervises the single Postgr
 port 5432 in foreground mode as user `postgres`; target transition and a second reboot remain
 pending.
 
+The first target PostgreSQL runit attempt exposed an antiX privilege detail: launching
+`pg_ctlcluster` beneath `chpst -u postgres` discarded the `ssl-cert` supplementary group, so the
+cluster could not read its configured snake-oil TLS private key. The service now starts the
+package-provided `pg_ctlcluster` wrapper as root; that supported wrapper performs PostgreSQL's own
+privilege transition while retaining the required cluster startup behavior.
+
 On 2026-09-03, the managed-startup/quarantine-audit change passed:
 
 - `python -m unittest tools/test_audit_bridge_quarantine.py tools/test_verify_market_data_status.py -v`
