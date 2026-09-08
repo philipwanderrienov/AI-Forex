@@ -139,6 +139,10 @@ Broker → Terminal MetaTrader 5/Wine pada Lubuntu → EA MQL5 read-only
 
 ## Deliverables
 
+- Deployment API antiX/runit memakai release `dotnet publish` berversi, aktivasi symlink atomik,
+  readiness check, dan rollback binary. Build dilakukan sebelum penghentian API; secret tetap
+  eksternal. Verifikasi restart/reboot dan recovery spool pada target wajib dilakukan.
+
 - EA MQL5 exporter read-only pada MT5/Wine dan Python Data Bridge native Linux yang kecil, terdokumentasi, dan dapat dijalankan dari satu perintah.
 - Mapping simbol nyata dari broker pengguna ke lima instrumen canonical.
 - Historical backfill dan ingestion real-time untuk `M15`, `H1`, dan `H4`.

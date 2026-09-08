@@ -55,6 +55,15 @@ The MT5 simulator must not invent a separate dummy schema. It must emit the same
   ledger rows identify the actual target OS. Existing `lubuntu-mt5-primary` ledger rows remain
   immutable historical records and must not be rewritten.
 
+## 2026-09-08 — Published API releases
+
+- antiX runit launches a framework-dependent published API DLL from
+  `/opt/forex-intelligence/api/current`; build happens before service interruption.
+- Root-owned versioned releases use atomic symlink activation, serialized deployment, readiness
+  verification, and recovery to the previous release on failure. Secrets stay in external env files.
+- Rollback covers API binaries only, never database migrations. Initial migration from the source
+  launcher requires keeping its backup because no previous published release exists yet.
+
 ## Existing architecture principles
 
 - Trading execution remains manual; the system is decision support, not an auto-trading bot.

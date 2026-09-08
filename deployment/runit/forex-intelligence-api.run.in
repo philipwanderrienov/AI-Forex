@@ -1,6 +1,7 @@
 #!/bin/sh
 
 set -eu
+exec 2>&1
 
 environment_file=/etc/forex-intelligence/api.env
 if [ ! -r "$environment_file" ]; then
@@ -17,7 +18,5 @@ export ASPNETCORE_ENVIRONMENT=Production
 export ASPNETCORE_URLS=http://127.0.0.1:5204
 export DOTNET_NOLOGO=true
 
-cd '@@REPOSITORY_ROOT@@'
-exec 2>&1
-exec chpst -u '@@SERVICE_USER@@' '@@DOTNET_PATH@@' run --no-launch-profile \
-    --project '@@REPOSITORY_ROOT@@/src/ForexIntelligence.Api/ForexIntelligence.Api.csproj'
+cd /opt/forex-intelligence/api/current
+exec chpst -u '@@SERVICE_USER@@' '@@DOTNET_PATH@@' ForexIntelligence.Api.dll

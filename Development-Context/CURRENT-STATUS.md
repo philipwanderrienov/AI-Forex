@@ -1,16 +1,30 @@
 # Current Development Status
 
-Last updated: 2026-09-05
+Last updated: 2026-09-08
 Owning branch for this update: `Codex`
 
 ## Current focus
 
-Phase 02 market-data acquisition. The MT5/Python acquisition boundary is complete enough to
-move development into authenticated .NET ingestion and PostgreSQL persistence.
+Phase 02 operational hardening. The real MT5 -> bridge -> authenticated .NET API -> PostgreSQL
+pipeline is verified; published API release tooling is now implemented and awaits target rollout.
 
 The dedicated target server is antiX Linux, not Lubuntu. The existing `systemd` deployment
-tooling must not be installed there; managed startup must first be adapted to the active antiX
-init system.
+tooling must not be installed there. Native runit startup and reboot recovery have been verified.
+
+## 2026-09-08 API release tooling
+
+- `scripts/publish-api-release.sh` builds a versioned framework-dependent Release artifact before
+  service interruption. `scripts/activate-api-release.sh` copies it into root-owned storage,
+  serializes deployments, stops the old process, atomically switches `current`, and checks readiness.
+- Failed activation restores and checks the previous release; `--rollback` supports manual recovery.
+  The runit API template now runs the published DLL. First migration needs a source-launcher backup
+  because there is no previous published release. No database migrations or secret changes occur.
+- Local verification: Release publish succeeded; Bash syntax checks passed; six isolated activation
+  scenarios passed (success, unhealthy candidate, startup failure, first-release failure, stop failure,
+  and unhealthy rollback). Git Bash required `MSYS=winsymlinks:sys` for test symlinks on Windows.
+- Not yet verified: real Linux activation, runit restart/reboot, manual rollback, startup timing,
+  and post-deployment spool recovery. Follow `deployment/runit/README.md` on antiX next, then resume
+  broker-session calibration. The Windows publish is a build check, not the target release artifact.
 
 The exporter default source instance is now `antix-mt5-primary`, preventing new bridge logs and
 ledger rows from labeling the target as Lubuntu. Applying this identity on the existing terminal
@@ -348,9 +362,9 @@ The temporary server was stopped and its spool was automatically removed after v
 
 ## Recommended next development sequence
 
-1. Replace runit API startup via `dotnet run` with a versioned `dotnet publish` artifact, atomic
-   activation, post-deploy health verification, and rollback. This should eliminate the observed
-   roughly 50-second source build/start delay during API recovery.
+1. Roll out the implemented published API release tooling on antiX; verify restart/reboot,
+   rollback, readiness timing, and spool recovery. Confirm removal of the observed roughly
+   50-second source build/start delay before marking the deployment checkpoint complete.
 2. Calibrate and test the broker's weekly UTC market-session boundaries, including market-open,
    Friday close, Sunday open, and short-outage behavior.
 3. Design broker-aware historical timezone/DST normalization. The current exporter intentionally

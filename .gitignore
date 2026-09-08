@@ -5,6 +5,7 @@
 .vscode/
 TestResults/
 coverage/
+artifacts/
 .env
 .env.*
 !.env.example

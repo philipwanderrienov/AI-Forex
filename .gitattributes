@@ -1,0 +1,2 @@
+*.sh text eol=lf
+deployment/runit/*.in text eol=lf

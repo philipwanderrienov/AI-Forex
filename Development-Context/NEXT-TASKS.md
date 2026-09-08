@@ -31,6 +31,9 @@ Tasks are ordered by current priority. Agents should compare `GPT` and `Codex` b
     trade request primitives, and trading action constants.
 25. [ ] Replace the runit API command from source-based `dotnet run` to a versioned
     `dotnet publish` release artifact with atomic activation, health verification, and rollback.
+    Tooling implemented on 2026-09-08; local publish, syntax, and six isolated recovery scenarios
+    passed. Remaining: target migration, restart/reboot, manual rollback, readiness timing, and
+    verification that the bridge spool drains without new quarantine entries.
 
 Local PostgreSQL migration plus simulator -> bridge -> .NET -> PostgreSQL happy-path,
 duplicate-ACK, and backend outage/recovery verification completed on 2026-08-28. The dedicated
