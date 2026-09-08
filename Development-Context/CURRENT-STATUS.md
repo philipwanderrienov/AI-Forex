@@ -13,6 +13,20 @@ tooling must not be installed there. Native runit startup and reboot recovery ha
 
 ## 2026-09-08 API release tooling
 
+- Handoff: implementation commit `5c05359` was pushed and verified on GitHub. The operator has
+  received the first-migration steps and will pull the repository on antiX; target execution has
+  not been reported. The user requested synchronizing `Codex`, `GPT`, and `main` with these notes.
+- Resume with `deployment/runit/README.md`, section "Migrasi server yang sudah menjalankan runit":
+  inspect local changes and pull, record baseline health/spool/quarantine, test and publish as the
+  repository user, back up the source launcher, stop only API, install templates, activate the
+  artifact, verify readiness and all 15 series, then test restart and planned reboot.
+- Keep the backup path and the same terminal during first migration. If activation fails before
+  any previous published release exists, restore the backed-up source launcher. Keep PostgreSQL
+  and bridge running; do not repeat initial SysV migration or recreate existing service symlinks.
+- Next evidence needed from antiX: active release path, readiness result, 15-series verifier result,
+  restart/reboot recovery timing, spool returning to zero, and unchanged quarantine count. Keep
+  task 25 open until target verification is complete; test manual rollback after two good releases.
+
 - `scripts/publish-api-release.sh` builds a versioned framework-dependent Release artifact before
   service interruption. `scripts/activate-api-release.sh` copies it into root-owned storage,
   serializes deployments, stops the old process, atomically switches `current`, and checks readiness.
