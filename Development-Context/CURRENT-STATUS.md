@@ -1,31 +1,43 @@
 # Current Development Status
 
-Last updated: 2026-09-08
+Last updated: 2026-09-10
 Owning branch for this update: `Codex`
 
 ## Current focus
 
 Phase 02 operational hardening. The real MT5 -> bridge -> authenticated .NET API -> PostgreSQL
-pipeline is verified; published API release tooling is now implemented and awaits target rollout.
+pipeline and target published API release migration, restart, reboot, and manual rollback are verified.
+Next focus: investigate reported candle gaps and calibrate broker sessions.
 
 The dedicated target server is antiX Linux, not Lubuntu. The existing `systemd` deployment
 tooling must not be installed there. Native runit startup and reboot recovery have been verified.
 
-## 2026-09-08 API release tooling
+## 2026-09-10 target release verification
 
-- Handoff: implementation commit `5c05359` was pushed and verified on GitHub. The operator has
-  received the first-migration steps and will pull the repository on antiX; target execution has
-  not been reported. The user requested synchronizing `Codex`, `GPT`, and `main` with these notes.
-- Resume with `deployment/runit/README.md`, section "Migrasi server yang sudah menjalankan runit":
-  inspect local changes and pull, record baseline health/spool/quarantine, test and publish as the
-  repository user, back up the source launcher, stop only API, install templates, activate the
-  artifact, verify readiness and all 15 series, then test restart and planned reboot.
-- Keep the backup path and the same terminal during first migration. If activation fails before
-  any previous published release exists, restore the backed-up source launcher. Keep PostgreSQL
-  and bridge running; do not repeat initial SysV migration or recreate existing service symlinks.
-- Next evidence needed from antiX: active release path, readiness result, 15-series verifier result,
-  restart/reboot recovery timing, spool returning to zero, and unchanged quarantine count. Keep
-  task 25 open until target verification is complete; test manual rollback after two good releases.
+- Operator screenshots confirm six isolated release tests passed on antiX and Linux publish succeeded.
+  First release `20260909T105658Z-27f7ce3` activated with readiness after 5 seconds.
+- API-only restart recovered with API/terminal healthy, spool 0, quarantine 493; PostgreSQL and
+  bridge stayed running. Exact restart readiness duration was not measured (16s was process age).
+- Reboot retained the first published release and all three runit services started automatically.
+  API readiness was Healthy at inspection around four minutes after boot; exact boot-to-ready
+  duration was not measured. After MT5/EA started, terminal was HEALTHY and the 15-series verifier
+  passed, spool was 0, and quarantine remained 493. Exporter resumed sequences 208 through 212.
+- Second release `20260909T234707Z-27f7ce3` was activated and verified, then manual rollback restored
+  the first release with readiness after 3 seconds. Subsequent verifier PASS, terminal HEALTHY,
+  all three services running, spool 0, and quarantine 493 were confirmed.
+- Final active path: `/opt/forex-intelligence/api/releases/20260909T105658Z-27f7ce3`.
+  Both artifacts use the same source revision: rollback validates release switching and health,
+  not compatibility between different application versions. No nonzero deployment backlog was
+  captured, so these checks confirm empty spool/no new quarantine rather than measured drain time.
+- Data continued advancing (M15 last close 2026-09-09T23:45:00Z). Reported gaps remain unresolved:
+  EURCHF H4 12, EURGBP H1 48, XAUUSD H1 56 and M15 54; other visible FX H1/H4 counts 1 and M15 4.
+  Do not equate verifier PASS with gap-free data. EURCHF/XAUUSD M15 briefly reported missing broker
+  history checkpoints at MT5 startup, then successfully published again.
+- Next: read-only comparison of gap intervals with broker history/session hours before changes or
+  replay. Keep quarantine and its backup preserved. Optional remaining timing measurement is exact
+  restart/boot readiness; the activation and rollback checks already demonstrate fast DLL startup.
+
+## 2026-09-08 API release tooling (implementation history)
 
 - `scripts/publish-api-release.sh` builds a versioned framework-dependent Release artifact before
   service interruption. `scripts/activate-api-release.sh` copies it into root-owned storage,
@@ -36,9 +48,8 @@ tooling must not be installed there. Native runit startup and reboot recovery ha
 - Local verification: Release publish succeeded; Bash syntax checks passed; six isolated activation
   scenarios passed (success, unhealthy candidate, startup failure, first-release failure, stop failure,
   and unhealthy rollback). Git Bash required `MSYS=winsymlinks:sys` for test symlinks on Windows.
-- Not yet verified: real Linux activation, runit restart/reboot, manual rollback, startup timing,
-  and post-deployment spool recovery. Follow `deployment/runit/README.md` on antiX next, then resume
-  broker-session calibration. The Windows publish is a build check, not the target release artifact.
+- Target follow-up is recorded above. The Windows publish was a build check; deployment used
+  artifacts published on antiX.
 
 The exporter default source instance is now `antix-mt5-primary`, preventing new bridge logs and
 ledger rows from labeling the target as Lubuntu. Applying this identity on the existing terminal
@@ -376,9 +387,8 @@ The temporary server was stopped and its spool was automatically removed after v
 
 ## Recommended next development sequence
 
-1. Roll out the implemented published API release tooling on antiX; verify restart/reboot,
-   rollback, readiness timing, and spool recovery. Confirm removal of the observed roughly
-   50-second source build/start delay before marking the deployment checkpoint complete.
+1. Published release target rollout, restart/reboot, and manual rollback are verified. Preserve
+   the two releases and investigate the reported gap intervals against broker history next.
 2. Calibrate and test the broker's weekly UTC market-session boundaries, including market-open,
    Friday close, Sunday open, and short-outage behavior.
 3. Design broker-aware historical timezone/DST normalization. The current exporter intentionally
@@ -402,5 +412,5 @@ The temporary server was stopped and its spool was automatically removed after v
 - The status service currently uses a deterministic fixed UTC weekly session as an initial model.
   Its freshness and gap output is useful for target verification, but the session boundary must be
   broker-calibrated before it becomes a production decision-data gate.
-- The immediate next checkpoint is target verification and broker-session calibration, not Phase
+- The immediate next checkpoint is gap investigation and broker-session calibration, not Phase
   03 technical-indicator development.

@@ -29,11 +29,13 @@ Tasks are ordered by current priority. Agents should compare `GPT` and `Codex` b
     transferring the existing local secrets.
 24. [x] Expand the exporter source policy test to reject direct order APIs, `CTrade` methods,
     trade request primitives, and trading action constants.
-25. [ ] Replace the runit API command from source-based `dotnet run` to a versioned
+25. [x] Replace the runit API command from source-based `dotnet run` to a versioned
     `dotnet publish` release artifact with atomic activation, health verification, and rollback.
     Tooling implemented on 2026-09-08; local publish, syntax, and six isolated recovery scenarios
-    passed. Remaining: target migration, restart/reboot, manual rollback, readiness timing, and
-    verification that the bridge spool drains without new quarantine entries.
+    passed. Target migration, API restart, reboot, and manual rollback verified on 2026-09-09/10.
+    First activation ready in 5s, rollback in 3s; verifier PASS, terminal HEALTHY, spool 0, quarantine
+    493. Exact restart/boot readiness and nonzero backlog drain time were not measured. Both releases
+    use the same source revision. Next: investigate remaining gaps and calibrate broker sessions.
 
 Local PostgreSQL migration plus simulator -> bridge -> .NET -> PostgreSQL happy-path,
 duplicate-ACK, and backend outage/recovery verification completed on 2026-08-28. The dedicated
@@ -43,7 +45,7 @@ three-timeframe matrix. The next hardening checkpoint is restart-safe exporter s
 version 0.4 was verified with ledger sequences continuing through 212, active spool depth zero,
 and quarantine depth zero. Exporter version 0.5 ACK-gated checkpoint catch-up was then verified
 after a short target-terminal outage without crossing a broker UTC-offset transition. The next
-operational hardening checkpoint is a published API release artifact with fast startup and
-rollback, followed by target broker calibration of the market-data status endpoint.
+operational checkpoint is now gap investigation and target broker calibration of the market-data
+status endpoint; published release deployment and manual rollback have passed on antiX.
 
 Do not start Python -> .NET publishing merely because it is later in Phase 02; finish and verify the MT5/Python acquisition boundary first.
