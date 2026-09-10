@@ -64,6 +64,17 @@ The MT5 simulator must not invent a separate dummy schema. It must emit the same
 - Rollback covers API binaries only, never database migrations. Initial migration from the source
   launcher requires keeping its backup because no previous published release exists yet.
 
+## 2026-09-10 — WIB presentation timezone
+
+- User selected WIB, `Asia/Jakarta` (UTC+7), for dashboard displays, reports, operator guidance,
+  and human-readable diagnostic query output.
+- Canonical candle timestamps, database storage, and API contracts remain UTC. Convert to WIB
+  at presentation boundaries; this decision does not authorize shifting stored candle timestamps.
+- Broker sessions must still be interpreted using broker time and historically correct offsets.
+  Changing display timezone does not fix gap detection or historical DST normalization.
+- This checkpoint records the decision only; no runtime, OS, dashboard, or database timezone
+  configuration was changed.
+
 ## Existing architecture principles
 
 - Trading execution remains manual; the system is decision support, not an auto-trading bot.

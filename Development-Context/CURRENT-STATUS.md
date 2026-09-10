@@ -12,6 +12,25 @@ Next focus: investigate reported candle gaps and calibrate broker sessions.
 The dedicated target server is antiX Linux, not Lubuntu. The existing `systemd` deployment
 tooling must not be installed there. Native runit startup and reboot recovery have been verified.
 
+## 2026-09-10 broker-session investigation and WIB decision
+
+- User selected WIB (`Asia/Jakarta`, UTC+7) for displays, reports, guidance, and diagnostic query
+  output. Database/API timestamps remain UTC. This is a recorded presentation decision, not an
+  implemented runtime or OS timezone change.
+- MT5 Specification screenshots show Quotes and Trade sessions Monday-Friday 00:00-24:00 for
+  EURUSD and 00:00-23:00 for XAUUSD; Saturday/Sunday are blank for both.
+- Target UTC clock showed 2026-09-10 00:08:49 (07:08:49 WIB); a subsequent Market Watch screenshot
+  showed about 03:09:38. These non-simultaneous observations are consistent with current broker
+  UTC+3, not proof of historical offsets or DST rules.
+- Assuming UTC+3, EURUSD weekly hours correspond to Monday 04:00 through Saturday 04:00 WIB;
+  XAUUSD daily sessions run 04:00-03:00 the following day WIB, with a 03:00-04:00 break between
+  weekday sessions. Validate these inferred conversions against actual candle history.
+- Code inspection found one fixed Sunday 22:00-Friday 22:00 UTC schedule for all instruments,
+  without the XAUUSD daily break. It may explain some reported gaps; full causation is unverified.
+- Next: run read-only XAUUSD H1 inter-candle gap analysis in DBeaver, display timestamps using
+  `AT TIME ZONE 'Asia/Jakarta'`, and compare with broker history/sessions. The previously supplied
+  UTC-output query has no reported execution result. Task 21 and historical DST work remain open.
+
 ## 2026-09-10 target release verification
 
 - Operator screenshots confirm six isolated release tests passed on antiX and Linux publish succeeded.

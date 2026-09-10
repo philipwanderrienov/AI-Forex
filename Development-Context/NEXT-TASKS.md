@@ -23,6 +23,10 @@ Tasks are ordered by current priority. Agents should compare `GPT` and `Codex` b
 19. [ ] Design broker-aware historical timezone/DST normalization before supporting backfill across an offset transition.
 20. [x] Implement deterministic per-series freshness and recent gap detection with explicit weekend market-closed handling.
 21. [ ] Verify `GET /api/market-data/status` against target PostgreSQL and calibrate the canonical UTC weekly session window to the selected broker.
+    EURUSD/XAUUSD session screenshots collected on 2026-09-10; current broker UTC+3 is inferred
+    from clock screenshots. Next: inspect XAUUSD H1 gaps in DBeaver with WIB output and compare
+    against broker sessions/history before changing the fixed schedule. Use Asia/Jakarta for
+    human-readable output while preserving UTC storage/API contracts. No query results yet.
 22. [x] Add managed Lubuntu `systemd` startup templates/installer with external secret files, plus a read-only quarantine audit tool.
 23. [x] Replace the Lubuntu-specific managed-startup path with one compatible with the target
     antiX init system, then install and reboot-verify PostgreSQL/API/bridge startup after safely
