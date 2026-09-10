@@ -14,6 +14,16 @@ tooling must not be installed there. Native runit startup and reboot recovery ha
 
 ## 2026-09-10 broker-session investigation and WIB decision
 
+- Added `database/010-diagnose-xauusd-h1-gaps.sql`: read-only DBeaver diagnosis with WIB
+  interval/coverage output, current API gap counts, and an explicitly hypothetical XAUUSD
+  Monday-Friday 00:00-23:00 broker schedule at fixed UTC+3. See `database/README.md` for usage
+  and limits. Target query results and broker-history comparison remain pending; no runtime
+  schedule, timestamps, checkpoint, or quarantine changes were made.
+- Verification: executed the SQL on an isolated temporary PostgreSQL 18 cluster using synthetic
+  fixtures; nine checks passed (empty, single, continuous, daily break with WIB conversion,
+  open-session missing candle, weekend, irregular alignment, mixed break/missing, wrong database).
+  `git diff --check` passed. This is SQL verification, not target-data or broker-session validation.
+
 - User selected WIB (`Asia/Jakarta`, UTC+7) for displays, reports, guidance, and diagnostic query
   output. Database/API timestamps remain UTC. This is a recorded presentation decision, not an
   implemented runtime or OS timezone change.

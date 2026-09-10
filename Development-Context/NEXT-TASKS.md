@@ -26,7 +26,9 @@ Tasks are ordered by current priority. Agents should compare `GPT` and `Codex` b
     EURUSD/XAUUSD session screenshots collected on 2026-09-10; current broker UTC+3 is inferred
     from clock screenshots. Next: inspect XAUUSD H1 gaps in DBeaver with WIB output and compare
     against broker sessions/history before changing the fixed schedule. Use Asia/Jakarta for
-    human-readable output while preserving UTC storage/API contracts. No query results yet.
+    human-readable output while preserving UTC storage/API contracts. Run the prepared read-only
+    `database/010-diagnose-xauusd-h1-gaps.sql` (instructions in `database/README.md`). It compares
+    current API counts with the fixed UTC+3 XAUUSD session hypothesis; no target query results yet.
 22. [x] Add managed Lubuntu `systemd` startup templates/installer with external secret files, plus a read-only quarantine audit tool.
 23. [x] Replace the Lubuntu-specific managed-startup path with one compatible with the target
     antiX init system, then install and reboot-verify PostgreSQL/API/bridge startup after safely

@@ -35,3 +35,42 @@ password sebelum menyimpan file.
 
 Tidak ada seed user atau password di database. Connection string, username/password hash
 bootstrap, dan JWT signing key tetap disimpan melalui environment atau .NET user-secrets.
+
+## Diagnosis gap XAUUSD H1
+
+Jalankan `010-diagnose-xauusd-h1-gaps.sql` pada koneksi database `forex_intelligence`
+di server antiX menggunakan **Execute SQL Script** (`Alt+X`). Ini diagnosis opsional,
+bukan migration; transaksi read-only dan seluruh kolom waktu hasil ditampilkan dalam WIB.
+Jika script gagal di tengah transaksi, jalankan `ROLLBACK;` sebelum mengulang.
+
+Default rentang adalah delapan hari terakhir. Untuk membandingkan snapshot status tertentu,
+ganti `CURRENT_TIMESTAMP` pada CTE `parameters` dengan waktu `asOf` snapshot API sebagai
+`TIMESTAMPTZ '2026-09-10 00:08:49+00'` (contoh, bukan waktu snapshot yang sudah diverifikasi).
+Query membatasi open time sampai waktu tersebut, sedangkan API saat ini hanya memiliki batas
+bawah lookback. Perbandingan mengasumsikan tidak ada candle bertimestamp masa depan. Query
+pada database saat ini juga tidak dapat merekonstruksi isi database sebelum backfill berikutnya.
+
+Setiap baris menunjukkan satu interval antarcandle yang lebih panjang dari satu jam:
+
+- `previous_open_wib` / `next_open_wib`: batas interval untuk dicocokkan dengan chart/history MT5.
+- `api_gap_slots`: jumlah slot kosong menurut jadwal API Minggu 22:00-Jumat 22:00 UTC.
+- `hypothesis_open_missing_slots`: slot kosong saat sesi XAUUSD diperkirakan buka,
+  dengan hipotesis broker UTC+3 dan sesi Senin-Jumat 00:00-23:00 waktu broker.
+- `api_slots_explained_by_hypothesis`: gap versi API yang jatuh pada sesi tutup dalam hipotesis.
+- `first_open_missing_wib`: slot pertama yang perlu dibandingkan dengan history MT5.
+- `total_api_gap_slots` / `total_hypothesis_open_missing_slots`: total seluruh interval,
+  diulang pada setiap baris; jangan dijumlahkan lagi antarbaris.
+
+`CLOSED_UNDER_UTC_PLUS_3_HYPOTHESIS` belum membuktikan data lengkap. Offset +3 hanya dugaan
+untuk periode pengamatan September 2026, bukan aturan DST historis. Jangan memakai hasil ini
+untuk mengubah timestamp atau mereplay data sebelum dibandingkan dengan sesi/history broker.
+`CHECK_TIMESTAMP_ALIGNMENT` memerlukan pemeriksaan timestamp; hitungan slot pada interval
+yang tidak bulat satu jam hanya indikasi. `INSUFFICIENT_DATA` berarti kurang dari dua candle.
+
+Query menghitung gap internal di antara candle FINAL yang tersimpan, seperti algoritma API.
+Ia tidak menghitung kekurangan sebelum candle pertama atau setelah candle terakhir, sehingga
+`NO_INTERNAL_GAPS` tidak membuktikan freshness atau kelengkapan seluruh histori. Periksa juga
+`candle_count`, `first_stored_open_wib`, dan `last_stored_close_wib`.
+
+Bagikan hasil tabel diagnosis untuk langkah kalibrasi berikutnya. Tidak perlu menyertakan
+credential, connection string, atau identitas akun broker. Pertahankan quarantine dan backup.
