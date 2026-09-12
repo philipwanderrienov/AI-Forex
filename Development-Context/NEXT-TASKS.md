@@ -5,11 +5,13 @@ Tasks are ordered by current priority. Agents should compare `GPT` and `Codex` b
 ## Immediate recovery checkpoint (2026-09-12)
 
 User requested synchronization of `main`, `GPT`, and `Codex`; continue IDE work on
-`Codex`. Exporter 0.6 changes are locally tested, not yet deployed or natively compiled.
+`Codex`. Initial native compile produced 0 errors and 1 version-format warning;
+metadata fixed to `0.600`, awaiting recompile. Runtime activation remains unverified.
 
 - [x] Investigate September 11 sequence reuse and collect backup evidence (see CURRENT-STATUS).
 - [x] Implement exporter 0.6 startup/sequence guards and read-only recovery inventory locally.
-- [ ] Compile in MetaEditor; verify native lock, restart and readiness on antiX before rollout.
+- [x] Compile initial 0.6 in MetaEditor (0 errors, 1 version-format warning).
+- [ ] Recompile `0.600` metadata fix; verify native lock, restart and readiness on antiX.
 - [ ] Review current ledger/spool/quarantine/state maximum and current broker offset for activation.
 - [ ] Validate quarantine candidates against DB/broker; resolve offset-0 checkpoints and design
       broker-history extraction/recovery batches. Do not replay HTTP 409 envelopes unchanged.

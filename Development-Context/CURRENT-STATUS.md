@@ -1,7 +1,7 @@
 # Current Development Status
 
 Last updated: 2026-09-12
-Owning branch for this update: `GPT`
+Owning branch for this update: `Codex`
 Next development workspace: `Codex` (user-requested IDE handoff on 2026-09-12)
 
 ## Current focus
@@ -12,6 +12,19 @@ Next focus: validate exporter 0.6 on target and prepare candle recovery; broker-
 
 The dedicated target server is antiX Linux, not Lubuntu. The existing `systemd` deployment
 tooling must not be installed there. Native runit startup and reboot recovery have been verified.
+
+## 2026-09-12 target compile and validated inventory
+
+- Target MetaEditor generated exporter 0.6 code with 0 errors and 1 warning: version
+  `0.6` is incompatible with the MQL5 Market version format. Changed metadata to
+  `0.600` on Codex; recompile to confirm warning removal. No runtime logic changed.
+- User-provided inventory validates all 851 envelopes with no errors. XAUUSD H1:
+  33 records = 16 legacy HTTP 401 + 1 legacy HTTP 409 + 16 antiX HTTP 409.
+  AntiX candidates span September 11 05:00–20:00 WIB. Contract/checksum success
+  does not prove historical timestamp correctness or authorize replay.
+- Native file locking, startup, restart and recovery remain unverified. Next:
+  recompile metadata fix, review current sequence floor and offset, then controlled activation.
+- Local verification for metadata-only change: git diff --check passed.
 
 ## 2026-09-12 sequence conflict investigation and exporter 0.6 preparation
 
@@ -41,7 +54,8 @@ tooling must not be installed there. Native runit startup and reboot recovery ha
   shorter documented PYTHONPATH failed two pre-existing tools imports from repository root.
   Subsequent modified guard scenarios passed; tools suite 7 tests passed. Guard tests execute
   production function bodies via C++ simulated MQL adapters, not actual MetaEditor/Wine APIs.
-  Native compile, actual file locking/durability, target startup and recovery remain unverified.
+  Initial native compile is recorded above; actual file locking/durability, target startup
+  and recovery remain unverified.
 - Next: compile 0.6 on target while detached, obtain validated inventory, review current sequence
   floor and broker offset before activation. Guard is local to a data directory, not backend
   allocation/cross-machine fencing; restoring both state files to an old snapshot requires audit.

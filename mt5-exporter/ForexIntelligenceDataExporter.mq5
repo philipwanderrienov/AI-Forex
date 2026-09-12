@@ -1,5 +1,5 @@
 #property strict
-#property version "0.6"
+#property version "0.600"
 #property description "Read-only multi-symbol M15/H1/H4 candle exporter for Forex Intelligence"
 
 input string HeartbeatUrl = "http://127.0.0.1:8001/v1/mt5/heartbeat";
