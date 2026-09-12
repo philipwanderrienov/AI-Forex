@@ -1,6 +1,6 @@
 #property strict
 // MQL5 Market requires a nonzero major version; project release remains 0.6.
-#property version "1.060"
+#property version "1.061"
 #property description "Read-only multi-symbol M15/H1/H4 candle exporter for Forex Intelligence"
 
 input string HeartbeatUrl = "http://127.0.0.1:8001/v1/mt5/heartbeat";
@@ -34,6 +34,7 @@ string SequenceStorageKey = "";
 datetime LastCandlePollAt = 0;
 int SequenceGuardHandle = INVALID_HANDLE;
 bool SequenceFault = false;
+bool ExporterReady = false;
 ulong ClockStableSince = 0;
 bool ClockObserved = false;
 datetime FirstObservedBrokerTime = 0;
@@ -548,34 +549,38 @@ void PollLatestFinalCandles()
      }
   }
 
+int AwaitConfiguration(const string message)
+  {
+   Print("CONFIGURATION REQUIRED: "+message+" Open chart F7 -> Inputs. Exporter is paused; no heartbeat or candles are sent.");
+   Comment("Forex Intelligence: configuration required. Open F7 -> Inputs. Exporter paused.");
+   return INIT_SUCCEEDED;
+  }
+
 int OnInit()
   {
+   ExporterReady=false;
+   Comment("");
    if(ExpectedBrokerUtcOffsetSeconds<-43200 || ExpectedBrokerUtcOffsetSeconds>50400 ||
       ExpectedBrokerUtcOffsetSeconds%60!=0 || VerifiedSequenceFloor<-1 ||
       VerifiedSequenceFloor>9007199254740991)
      {
-      Print("Set a verified current broker UTC offset and a valid sequence floor (-1 disables guard creation).");
-      return INIT_PARAMETERS_INCORRECT;
+      return AwaitConfiguration("Set a verified current broker UTC offset and a valid sequence floor (-1 disables guard creation).");
      }
    if(HeartbeatIntervalSeconds<1)
      {
-      Print("HeartbeatIntervalSeconds must be at least 1.");
-      return INIT_PARAMETERS_INCORRECT;
+      return AwaitConfiguration("HeartbeatIntervalSeconds must be at least 1.");
      }
    if(CandlePollIntervalSeconds<1)
      {
-      Print("CandlePollIntervalSeconds must be at least 1.");
-      return INIT_PARAMETERS_INCORRECT;
+      return AwaitConfiguration("CandlePollIntervalSeconds must be at least 1.");
      }
    if(RequestTimeoutMilliseconds<1000)
      {
-      Print("RequestTimeoutMilliseconds must be at least 1000.");
-      return INIT_PARAMETERS_INCORRECT;
+      return AwaitConfiguration("RequestTimeoutMilliseconds must be at least 1000.");
      }
    if(MaxBackfillBarsPerSeries<1 || MaxBackfillBarsPerSeries>100)
      {
-      Print("MaxBackfillBarsPerSeries must be between 1 and 100.");
-      return INIT_PARAMETERS_INCORRECT;
+      return AwaitConfiguration("MaxBackfillBarsPerSeries must be between 1 and 100.");
      }
 
    BrokerSymbols[0]=BrokerSymbolEURUSD;
@@ -602,7 +607,7 @@ int OnInit()
       if(StringLen(BrokerSymbols[instrument_index])<1)
         {
          PrintFormat("Broker symbol for %s must not be empty.",CanonicalInstruments[instrument_index]);
-         return INIT_PARAMETERS_INCORRECT;
+         return AwaitConfiguration("Broker symbols must not be empty.");
         }
       for(int timeframe_index=0;timeframe_index<TIMEFRAME_COUNT;timeframe_index++)
         {
@@ -620,6 +625,7 @@ int OnInit()
 
    if(!EventSetTimer(HeartbeatIntervalSeconds))
       return INIT_FAILED;
+   ExporterReady=true;
    PrintFormat(
       "Forex Intelligence exporter initialized. source=%s instruments=%d timeframes=%d candlePollSeconds=%d nextSequence=%I64u expectedOffset=%d",
       SourceInstanceId,INSTRUMENT_COUNT,TIMEFRAME_COUNT,CandlePollIntervalSeconds,Sequence+1,
@@ -629,6 +635,8 @@ int OnInit()
 
 void OnDeinit(const int reason)
   {
+   ExporterReady=false;
+   Comment("");
    EventKillTimer();
    if(SequenceGuardHandle!=INVALID_HANDLE)
      {
@@ -639,6 +647,8 @@ void OnDeinit(const int reason)
 
 void OnTimer()
   {
+   if(!ExporterReady)
+      return;
    PublishHeartbeat();
 
    datetime now=TimeLocal();

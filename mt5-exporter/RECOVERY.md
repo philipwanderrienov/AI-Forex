@@ -29,6 +29,19 @@ Backups reported on target:
 - `~/forex-recovery-backups/quarantine-20260912-213012.tar.gz`: 192 KB; gzip check passed.
 - `~/forex-recovery-backups/gvariables-20260912-213103.dat`: 4.9 KB copy.
 
+## Configuration dialog recovery (metadata build 1.061)
+
+Invalid configuration now leaves the EA attached and paused with a chart message.
+Open chart F7 -> Inputs to correct the configuration. While paused it creates no
+timer and sends neither heartbeat nor candles; bridge terminal freshness can be stale.
+Sequence initialization failures still stop the EA and require an audit.
+
+Close MetaEditor before replacing the active source to avoid saving an older open
+buffer over it. Compile the source in the actual terminal MQL5/Experts directory.
+Build 1.061 still requires target compilation and UI verification.
+The later operator snapshot reported quarantine depth 864 and a lubuntu heartbeat
+after an old 0.5 exporter ran; the 851-pair backup above predates that event.
+
 ## What 0.6 changes
 
 - A missing `.guard` file requires an explicitly audited `VerifiedSequenceFloor`.

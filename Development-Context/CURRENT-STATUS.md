@@ -495,3 +495,20 @@ The temporary server was stopped and its spool was automatically removed after v
   broker-calibrated before it becomes a production decision-data gate.
 - The immediate next checkpoint is gap investigation and broker-session calibration, not Phase
   03 technical-indicator development.
+
+
+## September 12: exporter configuration attachment fix
+
+Metadata build 1.061 keeps an EA with invalid configuration attached but paused,
+so chart F7 / Inputs remains accessible after an initialization attempt. No timer,
+heartbeat or candle publishing starts until configuration and sequence initialization
+pass. Sequence-state errors still fail initialization; no guard is bypassed.
+
+Verified: 84 bridge tests, including executing production lifecycle callbacks with
+side-effect counters for invalid input, sequence refusal, timer failure and successful
+activation. Native MetaEditor compilation of 1.061 and the F7 workflow remain pending.
+The operator compiled 1.060 successfully, but activation still returned invalid-input
+errors. Earlier target inspection found an old 0.5 source in the active MT5 directory
+and a lubuntu heartbeat; quarantine rose from 851 to 864. Preserve both versions and
+audit current state before recovery. Next: copy/compile 1.061 in the actual terminal
+directory, attach paused, inspect Inputs and verify source/floor/offset before activation.
