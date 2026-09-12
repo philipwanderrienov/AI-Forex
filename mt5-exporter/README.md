@@ -2,7 +2,10 @@
 
 `ForexIntelligenceDataExporter.mq5` adalah EA read-only untuk mengirim data terminal MT5 ke Python bridge lokal. Source tidak mempunyai fungsi membuka, mengubah, atau menutup order.
 
-Versi 0.5 menyimpan nomor urut envelope dan checkpoint candle per instrumen/timeframe di
+Versi 0.6 menambahkan pengaman startup dan sequence; lihat [RECOVERY.md](RECOVERY.md)
+untuk aktivasi, input wajib, batas pengaman, dan pemulihan yang masih tertunda.
+
+Sejak versi 0.5, exporter menyimpan nomor urut envelope dan checkpoint candle per instrumen/timeframe di
 Terminal Global Variables MT5 berdasarkan
 `SourceInstanceId`. Karena itu melepas/memasang ulang EA atau me-restart terminal tidak
 mengulang sequence dan dapat melanjutkan candle yang tertinggal. Nomor yang terlewati akibat
@@ -35,12 +38,14 @@ setelah bridge memberi HTTP 202, yaitu setelah envelope aman di durable spool.
 1. Jalankan Python bridge.
 2. Tambahkan `http://127.0.0.1:8001` ke daftar allowed WebRequest MT5.
 3. Compile `ForexIntelligenceDataExporter.mq5` melalui MetaEditor.
-4. Login ke akun **demo** broker dan pasang EA pada satu chart.
+4. Login ke akun **demo** broker. Ikuti audit `VerifiedSequenceFloor` dan konfigurasi
+   `ExpectedBrokerUtcOffsetSeconds` di RECOVERY.md sebelum memasang EA pada satu chart.
 5. Bila broker memakai suffix/prefix, ubah kelima input `BrokerSymbol...`, misalnya
    `BrokerSymbolEURUSD=EURUSD.a`; nama instrumen canonical tetap tidak berubah.
 6. Periksa tab Experts. Setelah request diterima, EA menulis log
-   `Published FINAL <instrument> <timeframe> candle`.
-7. Periksa `GET http://127.0.0.1:8001/health`; depth spool harus bertambah setelah batch candle baru diterima.
+   `Bridge accepted FINAL candle batch (backend persistence pending)`; ini bukan bukti
+   bahwa backend sudah menyimpan candle.
+7. Periksa `GET http://127.0.0.1:8001/health`; spool dapat naik sementara lalu kembali nol setelah backend ACK.
 
 `RequestTimeoutMilliseconds` default ke 5000 ms agar durable spool write dan `fsync` pada
 collector yang lambat tidak mudah dibaca sebagai timeout oleh WebRequest MT5/Wine. Respons
@@ -65,5 +70,5 @@ Belum tersedia atau belum diverifikasi nyata:
 - discovery otomatis timezone/DST broker.
 
 Seluruh matriks lima instrumen × tiga timeframe serta restart-safe sequence sudah terbukti pada
-terminal demo nyata. Versi 0.5 berikutnya perlu diverifikasi dengan restart singkat dan beberapa
-candle yang tertinggal sebelum pengembangan timezone/DST historis penuh.
+terminal demo nyata. Versi 0.5 telah melewati uji outage singkat tanpa perubahan offset. Versi 0.6 masih
+memerlukan compile MetaEditor dan verifikasi pada terminal target.

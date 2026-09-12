@@ -80,3 +80,14 @@ The MT5 simulator must not invent a separate dummy schema. It must emit the same
 - Trading execution remains manual; the system is decision support, not an auto-trading bot.
 - Deterministic calculations, validation, scoring, and risk rules must not depend on an LLM.
 - AI is introduced later for classification/explanation and must consume validated data rather than raw untrusted market input.
+
+## 2026-09-12 — Fail-closed exporter startup and recovery preparation
+
+- New sequence guards require an explicit audited floor; no automatic sequence-zero bootstrap.
+  Store sequence/check pairs in an exclusive terminal-local file alongside Global Variables.
+  Missing/mismatched state stops sending; this is not cross-machine/backend sequence allocation.
+- Require verified configured current broker offset, connection, recent advancing quotes and
+  synchronized history before candle publication. Keep historical offset mismatches blocked.
+- Preserve bridge HTTP 202 checkpoint semantics; label acceptance as backend persistence pending.
+  Recovery inventories validate contracts but never authorize or execute replay.
+- Do not infer state deletion, DST transition, or complete recovery from current evidence.

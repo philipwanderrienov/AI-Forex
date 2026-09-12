@@ -2,6 +2,21 @@
 
 Tasks are ordered by current priority. Agents should compare `GPT` and `Codex` before starting an item.
 
+## Immediate recovery checkpoint (2026-09-12)
+
+User requested synchronization of `main`, `GPT`, and `Codex`; continue IDE work on
+`Codex`. Exporter 0.6 changes are locally tested, not yet deployed or natively compiled.
+
+- [x] Investigate September 11 sequence reuse and collect backup evidence (see CURRENT-STATUS).
+- [x] Implement exporter 0.6 startup/sequence guards and read-only recovery inventory locally.
+- [ ] Compile in MetaEditor; verify native lock, restart and readiness on antiX before rollout.
+- [ ] Review current ledger/spool/quarantine/state maximum and current broker offset for activation.
+- [ ] Validate quarantine candidates against DB/broker; resolve offset-0 checkpoints and design
+      broker-history extraction/recovery batches. Do not replay HTTP 409 envelopes unchanged.
+- [ ] Verify all 15 series after controlled recovery and then recalibrate broker sessions.
+
+Instructions and limitations: `mt5-exporter/RECOVERY.md`. Historical task entries below remain history.
+
 1. [x] Build a Python MT5 simulator/dummy sender using the exact `mt5-heartbeat.v1`, `mt5-envelope.v1`, and `candle.v1` contracts.
 2. [x] Support a normal local scenario that sends heartbeat plus one valid EURUSD H1 FINAL candle to the running Python bridge.
 3. [x] Add deterministic simulator scenarios for duplicate batch, invalid OHLC, and heartbeat disconnect/staleness.

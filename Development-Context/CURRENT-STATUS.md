@@ -1,16 +1,52 @@
 # Current Development Status
 
-Last updated: 2026-09-10
-Owning branch for this update: `Codex`
+Last updated: 2026-09-12
+Owning branch for this update: `GPT`
+Next development workspace: `Codex` (user-requested IDE handoff on 2026-09-12)
 
 ## Current focus
 
 Phase 02 operational hardening. The real MT5 -> bridge -> authenticated .NET API -> PostgreSQL
 pipeline and target published API release migration, restart, reboot, and manual rollback are verified.
-Next focus: investigate reported candle gaps and calibrate broker sessions.
+Next focus: validate exporter 0.6 on target and prepare candle recovery; broker-session calibration remains open.
 
 The dedicated target server is antiX Linux, not Lubuntu. The existing `systemd` deployment
 tooling must not be installed there. Native runit startup and reboot recovery have been verified.
+
+## 2026-09-12 sequence conflict investigation and exporter 0.6 preparation
+
+- User evidence: antiX source ledger sequence 1 was stored September 5 14:23:17.705 WIB;
+  sequence 358 September 11 06:30:39.931; EA initialized with nextSequence=1 at 06:37:17.777;
+  sequence 359 stored at 22:00:01.622. Sample 118 has different batch/checksum in quarantine.
+  Quarantine 851 = 478 preserved/replayed HTTP 401 + 15 legacy HTTP 409 + 358 antiX HTTP 409
+  (sequences 1–358). Exact cause of source state rollback/loss remains unproven.
+- Startup sent before terminal synchronization completed. EURUSD M15/H1 then paused with
+  checkpoint offset 0 versus current +10800. Current terminal sequence and ledger maximum 477.
+  Only one current portable terminal and one discovered gvariables.dat; no proof of past duplicates.
+- XAUUSD H1 SQL: 46 candles, 85 API gap slots, 80 open-missing slots under the +3 hypothesis.
+  MT5 adjacent September 9 22:00 / September 10 01:00 broker bars match one DB gap; this
+  challenges the 00:00 session hypothesis, not proof of a corrected universal session rule.
+  September 10 08:00 broker candle exists in MT5 but was not found in quarantine by UTC/OHLC.
+  Quarantine contains 16 distinct H1 times September 10 22:00–September 11 13:00 UTC in the
+  larger gap. They remain recovery candidates, not approved replay payloads.
+- Backups reported: 468 KB Custom DB archive, TOC including candle/ledger TABLE DATA readable;
+  192 KB quarantine archive passes gzip check; 4.9 KB Global Variables copy. No restore test.
+- Implemented locally on GPT: exporter 0.6 exclusive sequence guard plus audited bootstrap floor;
+  configured/observed broker offset, recent advancing quote and 30s observation before candles;
+  synchronized per-series history; bridge acceptance log explicitly distinguishes backend commit.
+  Missing/corrupt/mismatched state fails closed. Existing offset-0 checkpoints stay blocked.
+- Added contract-validated read-only quarantine inventory and DBeaver ledger inspection SQL.
+  Rollout and recovery boundaries are in mt5-exporter/RECOVERY.md. No target changes/replay.
+- Verification: bridge suite 83 tests passed with PYTHONPATH=mt5-bridge:mt5-bridge/src; the
+  shorter documented PYTHONPATH failed two pre-existing tools imports from repository root.
+  Subsequent modified guard scenarios passed; tools suite 7 tests passed. Guard tests execute
+  production function bodies via C++ simulated MQL adapters, not actual MetaEditor/Wine APIs.
+  Native compile, actual file locking/durability, target startup and recovery remain unverified.
+- Next: compile 0.6 on target while detached, obtain validated inventory, review current sequence
+  floor and broker offset before activation. Guard is local to a data directory, not backend
+  allocation/cross-machine fencing; restoring both state files to an old snapshot requires audit.
+  Historical normalization, zero-offset checkpoint recovery, broker-history extraction and
+  validated replay tooling remain outstanding. Do not copy HTTP 409 files back into spool.
 
 ## 2026-09-10 broker-session investigation and WIB decision
 

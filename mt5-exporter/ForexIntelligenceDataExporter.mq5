@@ -1,5 +1,5 @@
 #property strict
-#property version "0.5"
+#property version "0.6"
 #property description "Read-only multi-symbol M15/H1/H4 candle exporter for Forex Intelligence"
 
 input string HeartbeatUrl = "http://127.0.0.1:8001/v1/mt5/heartbeat";
@@ -19,6 +19,11 @@ input int HeartbeatIntervalSeconds = 1;
 input int CandlePollIntervalSeconds = 15;
 input int RequestTimeoutMilliseconds = 5000;
 input int MaxBackfillBarsPerSeries = 32;
+// Set from a reviewed ledger/spool/quarantine audit for first 0.6 activation only.
+// -1 refuses to create a missing sequence guard; 0 is only for a verified new source.
+input long VerifiedSequenceFloor = -1;
+// Explicit current broker offset; sentinel prevents guessing during startup.
+input int ExpectedBrokerUtcOffsetSeconds = 86401;
 
 #define INSTRUMENT_COUNT 5
 #define TIMEFRAME_COUNT 3
@@ -26,6 +31,11 @@ input int MaxBackfillBarsPerSeries = 32;
 ulong Sequence = 0;
 string SequenceStorageKey = "";
 datetime LastCandlePollAt = 0;
+int SequenceGuardHandle = INVALID_HANDLE;
+bool SequenceFault = false;
+ulong ClockStableSince = 0;
+bool ClockObserved = false;
+datetime FirstObservedBrokerTime = 0;
 datetime PublishedCheckpoint[INSTRUMENT_COUNT][TIMEFRAME_COUNT];
 int PublishedCheckpointUtcOffset[INSTRUMENT_COUNT][TIMEFRAME_COUNT];
 string BrokerSymbols[INSTRUMENT_COUNT];
@@ -89,55 +99,153 @@ string BuildSequenceStorageKey()
    return "ForexIntelligence.Sequence."+StringSubstr(source_hash,7,32);
   }
 
+bool ValidSequenceValue(const double value)
+  {
+   return MathIsValidNumber(value) && value>=0.0 && value<=9007199254740991.0 &&
+      MathFloor(value)==value;
+  }
+
+bool ValidBrokerClockSample(
+   const bool connected,const long utc_now,const long broker_now,
+   const long quote_now,const int expected_offset)
+  {
+   if(!connected || utc_now<=0 || broker_now<=0 || quote_now<=0)
+      return false;
+   long difference=broker_now-utc_now-expected_offset;
+   long quote_age=broker_now-quote_now;
+   return difference>=-5 && difference<=5 && quote_age>=0 && quote_age<=60;
+  }
+
+bool WriteSequenceGuard(const double value)
+  {
+   ResetLastError();
+   if(!FileSeek(SequenceGuardHandle,0,SEEK_SET))
+      return false;
+   // A mismatched pair is treated as corruption after an interrupted write.
+   if(FileWriteDouble(SequenceGuardHandle,value)!=8 ||
+      FileWriteDouble(SequenceGuardHandle,-value-1.0)!=8)
+      return false;
+   FileFlush(SequenceGuardHandle);
+   if(GetLastError()!=0 || !FileSeek(SequenceGuardHandle,0,SEEK_SET))
+      return false;
+   double stored=FileReadDouble(SequenceGuardHandle);
+   double check=FileReadDouble(SequenceGuardHandle);
+   return GetLastError()==0 && stored==value && check==-value-1.0;
+  }
+
 bool LoadSequence()
   {
    SequenceStorageKey=BuildSequenceStorageKey();
    if(SequenceStorageKey=="")
+      return false;
+   string guard_path=SequenceStorageKey+".guard";
+   bool guard_exists=FileIsExist(guard_path);
+   if(!guard_exists && VerifiedSequenceFloor<0)
      {
-      Print("Cannot calculate persistent sequence storage key.");
+      Print("Sequence guard missing. Audit ledger, spool and quarantine before setting VerifiedSequenceFloor.");
       return false;
      }
-
-   if(!GlobalVariableCheck(SequenceStorageKey))
+   if(!guard_exists && GlobalVariableCheck(SequenceStorageKey) &&
+      GlobalVariableGet(SequenceStorageKey)>(double)VerifiedSequenceFloor)
      {
-      ResetLastError();
-      if(GlobalVariableSet(SequenceStorageKey,0.0)==0)
+      Print("Verified floor is below local sequence. Repeat the recovery audit.");
+      return false;
+     }
+   // No sharing: hold the handle until deinitialization to exclude another 0.6 EA
+   // for this source in the same terminal data directory.
+   SequenceGuardHandle=FileOpen(guard_path,FILE_READ|FILE_WRITE|FILE_BIN);
+   if(SequenceGuardHandle==INVALID_HANDLE)
+     {
+      Print("Cannot lock sequence guard. Check for another exporter or file access failure.");
+      return false;
+     }
+   bool variable_exists=GlobalVariableCheck(SequenceStorageKey);
+   if(guard_exists && !variable_exists)
+     {
+      Print("Sequence Global Variable missing while guard exists. Recovery audit required.");
+      return false;
+     }
+   double stored_sequence=variable_exists ? GlobalVariableGet(SequenceStorageKey) : 0.0;
+   if(!ValidSequenceValue(stored_sequence))
+      return false;
+   double guarded_sequence=0.0;
+   if(guard_exists)
+     {
+      if(FileSize(SequenceGuardHandle)!=16)
+         return false;
+      guarded_sequence=FileReadDouble(SequenceGuardHandle);
+      double check=FileReadDouble(SequenceGuardHandle);
+      if(!ValidSequenceValue(guarded_sequence) || check!=-guarded_sequence-1.0 ||
+         stored_sequence!=guarded_sequence)
         {
-         PrintFormat("Cannot initialize persistent sequence. error=%d",GetLastError());
+         Print("Sequence guard and Global Variable disagree. Recovery audit required; no automatic reset.");
          return false;
         }
      }
-
-   double stored_sequence=GlobalVariableGet(SequenceStorageKey);
-   if(stored_sequence<0.0 || stored_sequence>9007199254740991.0)
+   double floor=VerifiedSequenceFloor<0 ? 0.0 : (double)VerifiedSequenceFloor;
+   double initial_sequence=MathMax(stored_sequence,floor);
+   if(initial_sequence>0)
      {
-      PrintFormat("Persistent sequence is outside the supported range: %.0f",stored_sequence);
-      return false;
+      for(int instrument_index=0;instrument_index<INSTRUMENT_COUNT;instrument_index++)
+         for(int timeframe_index=0;timeframe_index<TIMEFRAME_COUNT;timeframe_index++)
+            if(PublishedCheckpoint[instrument_index][timeframe_index]<=0)
+              {
+               Print("Existing source has a missing checkpoint. Recovery audit required.");
+               return false;
+              }
      }
-
-   Sequence=(ulong)stored_sequence;
+   if(!WriteSequenceGuard(initial_sequence) ||
+      GlobalVariableSet(SequenceStorageKey,initial_sequence)==0)
+      return false;
+   GlobalVariablesFlush();
+   Sequence=(ulong)initial_sequence;
    return true;
   }
 
 bool ReserveNextSequence()
   {
-   if(Sequence>=9007199254740991)
+   if(SequenceFault || SequenceGuardHandle==INVALID_HANDLE)
+      return false;
+   if(Sequence>=9007199254740991 || !GlobalVariableCheck(SequenceStorageKey) ||
+      GlobalVariableGet(SequenceStorageKey)!=(double)Sequence)
      {
-      Print("Persistent sequence has reached its supported maximum.");
+      SequenceFault=true;
+      Print("Sequence state changed or exhausted. Candle publishing stopped; recovery audit required.");
       return false;
      }
-
    ulong next_sequence=Sequence+1;
-   ResetLastError();
-   if(GlobalVariableSet(SequenceStorageKey,(double)next_sequence)==0)
+   // Guard first: a partial write halts on restart instead of reusing a number.
+   if(!WriteSequenceGuard((double)next_sequence) ||
+      GlobalVariableSet(SequenceStorageKey,(double)next_sequence)==0)
      {
-      PrintFormat("Cannot persist the next sequence. error=%d",GetLastError());
+      SequenceFault=true;
+      Print("Cannot persist sequence. Candle publishing stopped.");
       return false;
      }
-
    GlobalVariablesFlush();
    Sequence=next_sequence;
    return true;
+  }
+
+bool BrokerClockReady()
+  {
+   datetime broker_now=TimeTradeServer();
+   if(!ValidBrokerClockSample(
+      (bool)TerminalInfoInteger(TERMINAL_CONNECTED),(long)TimeGMT(),
+      (long)broker_now,(long)TimeCurrent(),ExpectedBrokerUtcOffsetSeconds))
+     {
+      ClockObserved=false;
+      return false;
+     }
+   if(!ClockObserved)
+     {
+      ClockObserved=true;
+      ClockStableSince=GetTickCount64();
+      FirstObservedBrokerTime=TimeCurrent();
+      return false;
+     }
+   // Require elapsed monotonic time AND a new broker quote since the first sample.
+   return GetTickCount64()-ClockStableSince>=30000 && TimeCurrent()>FirstObservedBrokerTime;
   }
 
 string BuildCheckpointStorageKey(
@@ -175,8 +283,8 @@ bool LoadCheckpoint(const int instrument_index,const int timeframe_index)
 
    double stored_time=GlobalVariableGet(checkpoint_key);
    double stored_offset=GlobalVariableGet(offset_key);
-   if(stored_time<0.0 || stored_time>9007199254740991.0 ||
-      stored_offset<-86400.0 || stored_offset>86400.0)
+   if(!ValidSequenceValue(stored_time) || !MathIsValidNumber(stored_offset) ||
+      MathFloor(stored_offset)!=stored_offset || stored_offset<-86400.0 || stored_offset>86400.0)
      {
       PrintFormat(
          "Checkpoint state invalid. instrument=%s timeframe=%s",
@@ -314,8 +422,12 @@ bool PublishMissingFinalCandles(const int instrument_index,const int timeframe_i
       return false;
      }
 
-   int raw_server_utc_offset=(int)(TimeTradeServer()-TimeGMT());
-   int server_utc_offset=(int)MathRound((double)raw_server_utc_offset/60.0)*60;
+   MqlRates readiness_rates[];
+   if(!BrokerClockReady() || CopyRates(broker_symbol,timeframe,0,1,readiness_rates)!=1 ||
+      !SymbolIsSynchronized(broker_symbol) ||
+      !SeriesInfoInteger(broker_symbol,timeframe,SERIES_SYNCHRONIZED))
+      return false;
+   int server_utc_offset=ExpectedBrokerUtcOffsetSeconds;
    datetime checkpoint=PublishedCheckpoint[instrument_index][timeframe_index];
    int checkpoint_shift=2;
    int missing_count=1;
@@ -408,7 +520,7 @@ bool PublishMissingFinalCandles(const int instrument_index,const int timeframe_i
          instrument_index,timeframe_index,newest_broker_open_time,server_utc_offset))
          return false;
       PrintFormat(
-         "Published FINAL candle batch. instrument=%s timeframe=%s broker=%s records=%d checkpoint=%s sequence=%I64u",
+         "Bridge accepted FINAL candle batch (backend persistence pending). instrument=%s timeframe=%s broker=%s records=%d checkpoint=%s sequence=%I64u",
          canonical_instrument,timeframe_name,broker_symbol,record_count,
          UtcIso(newest_broker_open_time-server_utc_offset),Sequence);
       return true;
@@ -423,6 +535,11 @@ bool PublishMissingFinalCandles(const int instrument_index,const int timeframe_i
 
 void PollLatestFinalCandles()
   {
+   if(SequenceFault || !BrokerClockReady())
+     {
+      Print("Candle publishing paused: sequence fault or broker clock not ready. Heartbeat is not candle readiness.");
+      return;
+     }
    for(int instrument_index=0;instrument_index<INSTRUMENT_COUNT;instrument_index++)
      {
       for(int timeframe_index=0;timeframe_index<TIMEFRAME_COUNT;timeframe_index++)
@@ -432,6 +549,13 @@ void PollLatestFinalCandles()
 
 int OnInit()
   {
+   if(ExpectedBrokerUtcOffsetSeconds<-43200 || ExpectedBrokerUtcOffsetSeconds>50400 ||
+      ExpectedBrokerUtcOffsetSeconds%60!=0 || VerifiedSequenceFloor<-1 ||
+      VerifiedSequenceFloor>9007199254740991)
+     {
+      Print("Set a verified current broker UTC offset and a valid sequence floor (-1 disables guard creation).");
+      return INIT_PARAMETERS_INCORRECT;
+     }
    if(HeartbeatIntervalSeconds<1)
      {
       Print("HeartbeatIntervalSeconds must be at least 1.");
@@ -488,18 +612,28 @@ int OnInit()
 
    MathSrand((int)GetTickCount());
    if(!LoadSequence())
+     {
+      Print("Sequence initialization refused. Preserve state and review recovery diagnostics.");
       return INIT_FAILED;
+     }
 
-   EventSetTimer(HeartbeatIntervalSeconds);
+   if(!EventSetTimer(HeartbeatIntervalSeconds))
+      return INIT_FAILED;
    PrintFormat(
-      "Forex Intelligence exporter initialized. instruments=%d timeframes=%d candlePollSeconds=%d nextSequence=%I64u",
-      INSTRUMENT_COUNT,TIMEFRAME_COUNT,CandlePollIntervalSeconds,Sequence+1);
+      "Forex Intelligence exporter initialized. source=%s instruments=%d timeframes=%d candlePollSeconds=%d nextSequence=%I64u expectedOffset=%d",
+      SourceInstanceId,INSTRUMENT_COUNT,TIMEFRAME_COUNT,CandlePollIntervalSeconds,Sequence+1,
+      ExpectedBrokerUtcOffsetSeconds);
    return INIT_SUCCEEDED;
   }
 
 void OnDeinit(const int reason)
   {
    EventKillTimer();
+   if(SequenceGuardHandle!=INVALID_HANDLE)
+     {
+      FileClose(SequenceGuardHandle);
+      SequenceGuardHandle=INVALID_HANDLE;
+     }
   }
 
 void OnTimer()

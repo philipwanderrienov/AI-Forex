@@ -175,3 +175,15 @@ Broker → Terminal MetaTrader 5/Wine pada Lubuntu → EA MQL5 read-only
 - [MQL5 `WebRequest`](https://www.mql5.com/en/docs/network/webrequest)
 - [MQL5 `CopyRates`](https://www.mql5.com/en/docs/series/copyrates)
 - [MQL5 `CopyTicksRange`](https://www.mql5.com/en/docs/series/copyticksrange)
+
+### Pengaman exporter 0.6 (2026-09-12)
+
+State sequence memakai Global Variable dan file guard eksklusif pada direktori data
+terminal. Guard baru memerlukan floor hasil audit ledger/spool/quarantine/state;
+state hilang, berbeda, atau gagal ditulis menghentikan pengiriman. Proteksi ini
+tidak mencakup dua komputer atau restore kedua state ke snapshot lama.
+Candle menunggu koneksi, offset broker yang dikonfigurasi dan terverifikasi, quote
+segar yang maju setelah observasi 30 detik, serta history tersinkronisasi. Offset
+checkpoint lama tidak ditulis ulang otomatis. ACK tetap berarti durable bridge
+acceptance, bukan backend commit. Lihat `mt5-exporter/RECOVERY.md` untuk rollout
+dan inventaris read-only; pemulihan candle dan DST historis belum diimplementasikan.

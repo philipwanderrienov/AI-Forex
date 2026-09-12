@@ -74,3 +74,10 @@ Ia tidak menghitung kekurangan sebelum candle pertama atau setelah candle terakh
 
 Bagikan hasil tabel diagnosis untuk langkah kalibrasi berikutnya. Tidak perlu menyertakan
 credential, connection string, atau identitas akun broker. Pertahankan quarantine dan backup.
+
+## Recovery ledger inspection
+
+`011-inspect-recovery-ledger.sql` is a read-only DBeaver script for source sequence
+maxima and incident sample rows, with WIB storage times. It does not initialize or
+modify sequences. Compare with pending spool, quarantine and stopped terminal state
+before setting an exporter floor; see `mt5-exporter/RECOVERY.md`.
