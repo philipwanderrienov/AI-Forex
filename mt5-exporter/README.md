@@ -4,6 +4,8 @@
 
 Versi 0.6 menambahkan pengaman startup dan sequence; lihat [RECOVERY.md](RECOVERY.md)
 untuk aktivasi, input wajib, batas pengaman, dan pemulihan yang masih tertunda.
+Metadata `#property version` memakai `1.060` agar major version tidak nol untuk
+kompatibilitas MQL5 Market; release proyek tetap disebut 0.6.
 
 Sejak versi 0.5, exporter menyimpan nomor urut envelope dan checkpoint candle per instrumen/timeframe di
 Terminal Global Variables MT5 berdasarkan

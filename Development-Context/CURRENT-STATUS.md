@@ -16,8 +16,10 @@ tooling must not be installed there. Native runit startup and reboot recovery ha
 ## 2026-09-12 target compile and validated inventory
 
 - Target MetaEditor generated exporter 0.6 code with 0 errors and 1 warning: version
-  `0.6` is incompatible with the MQL5 Market version format. Changed metadata to
-  `0.600` on Codex; recompile to confirm warning removal. No runtime logic changed.
+  `0.6` is incompatible with the MQL5 Market version format. Target recompile of
+  `0.600` also produced 0 errors and the same warning. Corrected metadata to `1.060`
+  (nonzero major; logical project release remains 0.6); target recompile pending.
+  No runtime logic changed. Reference: https://www.mql5.com/en/forum/13529
 - User-provided inventory validates all 851 envelopes with no errors. XAUUSD H1:
   33 records = 16 legacy HTTP 401 + 1 legacy HTTP 409 + 16 antiX HTTP 409.
   AntiX candidates span September 11 05:00–20:00 WIB. Contract/checksum success
