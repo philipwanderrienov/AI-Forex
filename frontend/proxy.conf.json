@@ -1,11 +1,11 @@
 {
   "/api": {
-    "target": "http://127.0.0.1:5000",
+    "target": "http://127.0.0.1:5204",
     "secure": false,
     "changeOrigin": true
   },
   "/health": {
-    "target": "http://127.0.0.1:5000",
+    "target": "http://127.0.0.1:5204",
     "secure": false,
     "changeOrigin": true
   }
