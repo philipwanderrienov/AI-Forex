@@ -92,3 +92,9 @@ ROLLBACK with COMMIT and executing the entire script again. On error execute
 ROLLBACK. Identical existing candles are skipped; differing rows cause an error.
 CSV provenance and the tick-volume discrepancy are recorded in the script.
 No batch ledger, checkpoint or quarantine changes are made.
+
+
+013-preview-xauusd-h1-second-recovery.sql follows the same transaction workflow
+for 15 additional broker CSV candles (September 10 12:00–September 11 02:00 WIB).
+It excludes the four slots with no bars in the export. Default ROLLBACK; review
+the 15-row result before committing. This is also optional manual recovery.

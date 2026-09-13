@@ -75,3 +75,5 @@ Do not start Python -> .NET publishing merely because it is later in Phase 02; f
 
 
 Latest checkpoint: 1.061 activates with healthy heartbeat. Next execute database/012-preview-xauusd-h1-recovery.sql in DBeaver (default ROLLBACK), review then commit scoped CSV repair. Restart and full candle readiness still pending.
+
+Latest recovery step: first 16 candles verified by operator COUNT. Preview database/013-preview-xauusd-h1-second-recovery.sql for 15 more CSV bars; default ROLLBACK. Four remaining slots have no bars in the provided export.

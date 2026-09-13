@@ -531,3 +531,24 @@ existing differing row aborts without overwrite. No target repair executed yet.
 Next: execute entire script in DBeaver, review count/rows, then replace final
 ROLLBACK with COMMIT for an explicit repair. Other gaps and offset-0 checkpoints
 remain unresolved; this does not establish a general historical offset rule.
+
+
+## September 13: first repair verified; second repair prepared
+
+Operator ran 012 and subsequent COUNT returned 16. Latest 010 diagnostics show
+50 candles in the moving window and two internal gaps totaling 19 hourly slots.
+Do not compare this moving-window total directly to the prior day's total.
+New broker CSV XAUUSD_H1_202609092200_202609110200.csv contains 25 bars.
+Under scoped UTC+3 mapping, 15 missing candles exist at September 10 08:00–22:00
+broker (12:00 WIB through September 11 02:00 WIB). Four remaining gap slots
+have no exported broker bars: 23:00/00:00 on both nights. This supports observed
+history gaps, not a universal session/calendar rule. Do not synthesize candles.
+The two overlap bars match values in 012, including tick volume 3750.
+
+013-preview-xauusd-h1-second-recovery.sql prepares only those 15 missing bars;
+default ROLLBACK, CSV hash recorded, differing existing rows cause refusal.
+Verified on isolated PostgreSQL with canonical schema and first repair seeded:
+dry run preserves 16 rows; commit adds 15; repeat adds zero; conflict aborts
+without overwrite. Target preview/commit still pending. No source state, ledger
+or quarantine mutations. Next execute entire 013 in DBeaver, review 15-row
+preview, commit, then rerun diagnostics. Readiness/offset-0 issues remain open.
