@@ -1,17 +1,17 @@
 using ForexIntelligence.Api.Authentication;
 using ForexIntelligence.Api.Models.Requests.Authentication;
 using ForexIntelligence.Api.Models.Responses.Authentication;
+using ForexIntelligence.Application.Interfaces.Repositories;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
-using Microsoft.Extensions.Options;
 
 namespace ForexIntelligence.Api.Controllers;
 
 [ApiController]
 [Route("api/auth")]
 public sealed class AuthenticationController(
-    IOptions<BootstrapUserOptions> userOptions,
+    IUserRepository userRepository,
     ITokenService tokenService) : ControllerBase
 {
     [AllowAnonymous]
@@ -23,8 +23,9 @@ public sealed class AuthenticationController(
         LoginRequest request,
         CancellationToken cancellationToken)
     {
-        var user = userOptions.Value;
-        if (!string.Equals(request.Username, user.Username, StringComparison.Ordinal)
+        var user = await userRepository.GetByUsernameAsync(request.Username, cancellationToken);
+        if (user is null
+            || !user.IsActive
             || !PasswordHashing.Verify(request.Password, user.PasswordHash))
         {
             return Unauthorized();
