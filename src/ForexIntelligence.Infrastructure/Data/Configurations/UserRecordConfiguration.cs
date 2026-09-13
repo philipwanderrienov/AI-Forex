@@ -10,6 +10,9 @@ public sealed class UserRecordConfiguration : IEntityTypeConfiguration<UserRecor
     {
         builder.ToTable("users");
         builder.HasKey(user => user.Id);
+        builder.Property(user => user.Id)
+            .HasDefaultValueSql("gen_random_uuid()")
+            .ValueGeneratedOnAdd();
         builder.Property(user => user.Username).HasMaxLength(100).IsRequired();
         builder.HasIndex(user => user.Username).IsUnique();
         builder.Property(user => user.PasswordHash).HasMaxLength(512).IsRequired();
