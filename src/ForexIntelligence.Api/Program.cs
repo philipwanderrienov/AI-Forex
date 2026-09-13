@@ -40,15 +40,6 @@ builder.Services
     .Validate(options => options.RefreshTokenDays is > 0 and <= 7, "Refresh token maksimal 7 hari.")
     .ValidateOnStart();
 builder.Services
-    .AddOptions<BootstrapUserOptions>()
-    .Bind(builder.Configuration.GetSection(BootstrapUserOptions.SectionName))
-    .Validate(options => !string.IsNullOrWhiteSpace(options.Username), "BootstrapUser:Username wajib diisi.")
-    .Validate(
-        options => PasswordHashing.IsValidHash(options.PasswordHash),
-        "BootstrapUser:PasswordHash wajib berupa hash PBKDF2-SHA256.")
-    .Validate(options => options.Role is "USER" or "ADMIN", "Role harus USER atau ADMIN.")
-    .ValidateOnStart();
-builder.Services
     .AddOptions<BridgeApiKeyOptions>()
     .Bind(builder.Configuration.GetSection(BridgeApiKeyOptions.SectionName))
     .Validate(options => Encoding.UTF8.GetByteCount(options.ApiKey) >= 32, "Bridge API key minimal 32 byte.")
@@ -107,14 +98,12 @@ builder.Services.AddInfrastructure(connectionString);
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
 }
 
 app.UseHttpsRedirection();
-
 app.UseRateLimiter();
 app.UseAuthentication();
 app.UseAuthorization();
