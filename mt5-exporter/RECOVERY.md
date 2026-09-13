@@ -1,5 +1,22 @@
 # Exporter 0.6 rollout and recovery checkpoint
 
+## Current operator checkpoint (2026-09-13, WIB)
+
+Target metadata 1.062 initializes at nextSequence 478 and reports QUOTE_STALE
+with expectedOffset 10800. Live candle acceptance and backend persistence remain
+unverified until advancing quotes arrive. The 31 XAUUSD H1 candles covered by
+SQL 012/013 have been recovered; four remaining hourly slots also have no bars
+in the supplied CSV. EURUSD checkpoint samples matched DB; offset-only repair
+was guided, but live traversal remains unverified.
+
+The bridge now uses `/var/lib/forex-intelligence/spool`: migration verified 1702
+files, retained the source, and restarted healthy with pending 0/quarantine 851.
+Source and virtualenv still depend on the checkout. See
+[CURRENT-STATUS.md](../Development-Context/CURRENT-STATUS.md) and
+[NEXT-TASKS.md](../Development-Context/NEXT-TASKS.md) for current evidence and tasks.
+The historical preparation steps below are not instructions to repeat completed
+repairs or reset initialized state.
+
 ## Evidence and backups (2026-09-12, WIB)
 
 The target ledger first stored `antix-mt5-primary` sequence 1 on September 5 at
@@ -38,7 +55,8 @@ Sequence initialization failures still stop the EA and require an audit.
 
 Close MetaEditor before replacing the active source to avoid saving an older open
 buffer over it. Compile the source in the actual terminal MQL5/Experts directory.
-Build 1.061 still requires target compilation and UI verification.
+The target subsequently demonstrated the configuration dialog and successful
+initialization; the latest runtime screenshot is from metadata build 1.062.
 The later operator snapshot reported quarantine depth 864 and a lubuntu heartbeat
 after an old 0.5 exporter ran; the 851-pair backup above predates that event.
 
@@ -82,8 +100,9 @@ after an old 0.5 exporter ran; the 851-pair backup above predates that event.
    `ExpectedBrokerUtcOffsetSeconds=10800` only if the current broker offset is
    still verified as +3. Defaults intentionally refuse unreviewed activation.
 6. Attach on one chart only. Check initialization, guard creation and paused
-   reasons. EURUSD M15/H1 with stored offset 0 will remain paused. Do not edit them
-   to +3. Outside trading hours the clock gate intentionally waits for quotes.
+   reasons. EURUSD M15/H1 with stored offset 0 will remain paused. Offset edits
+   require exact broker-history/DB evidence; do not blindly change them to +3.
+   Outside trading hours the clock gate intentionally waits for quotes.
 7. After successful first initialization, return `VerifiedSequenceFloor` to -1;
    the existing guard supports subsequent starts. Back up BOTH `Bases/gvariables.dat`
    and `MQL5/Files/ForexIntelligence.Sequence.*.guard` with MT5 stopped.
@@ -115,8 +134,9 @@ broker history and canonical DB rows, detect conflicting overlaps, resolve the
 zero-offset checkpoints, and establish historical offsets for the exact period.
 Preserve original envelope provenance. Do not copy HTTP 409 envelopes into spool,
 rename their source, or alter checksums/sequence ad hoc. The report is preparation,
-not an executable replay plan. Broker-history extraction, validated recovery
-batches and target replay remain outstanding.
+not an executable replay plan. The scoped CSV repairs recorded above are complete;
+any additional recovery requires its own evidence. Quarantine replay is not authorized
+by a successful inventory or by those manual candle repairs.
 
 ## Verification commands
 

@@ -91,3 +91,15 @@ The MT5 simulator must not invent a separate dummy schema. It must emit the same
 - Preserve bridge HTTP 202 checkpoint semantics; label acceptance as backend persistence pending.
   Recovery inventories validate contracts but never authorize or execute replay.
 - Do not infer state deletion, DST transition, or complete recovery from current evidence.
+
+## 2026-09-13 — Recovery evidence and durable runtime state
+
+- Recover only broker-history candles whose timestamps and business values have been
+  reviewed; preserve ledger/quarantine provenance. Missing CSV bars are not synthetic
+  candle candidates or proof of a universal broker session calendar.
+- Keep bridge spool outside the Git checkout at `/var/lib/forex-intelligence/spool`.
+  Migration stops the service, verifies file copies, backs up the launcher and keeps
+  the source. Code/virtualenv independence remains separate future work.
+- Report specific exporter pause reasons. QUOTE_STALE with healthy heartbeat still
+  requires advancing quotes and clock warmup, followed by backend persistence checks;
+  it does not justify bypassing guards or declaring full recovery.
