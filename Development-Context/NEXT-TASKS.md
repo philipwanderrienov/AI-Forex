@@ -72,3 +72,6 @@ operational checkpoint is now gap investigation and target broker calibration of
 status endpoint; published release deployment and manual rollback have passed on antiX.
 
 Do not start Python -> .NET publishing merely because it is later in Phase 02; finish and verify the MT5/Python acquisition boundary first.
+
+
+Latest checkpoint: 1.061 activates with healthy heartbeat. Next execute database/012-preview-xauusd-h1-recovery.sql in DBeaver (default ROLLBACK), review then commit scoped CSV repair. Restart and full candle readiness still pending.

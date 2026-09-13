@@ -81,3 +81,14 @@ credential, connection string, atau identitas akun broker. Pertahankan quarantin
 maxima and incident sample rows, with WIB storage times. It does not initialize or
 modify sequences. Compare with pending spool, quarantine and stopped terminal state
 before setting an exporter floor; see `mt5-exporter/RECOVERY.md`.
+
+
+### Scoped recovery preview
+
+012-preview-xauusd-h1-recovery.sql is an optional incident-specific manual repair,
+not a schema migration. Execute the ENTIRE script in DBeaver. Final ROLLBACK
+discards inserts; review count and 16 rows before replacing only the final
+ROLLBACK with COMMIT and executing the entire script again. On error execute
+ROLLBACK. Identical existing candles are skipped; differing rows cause an error.
+CSV provenance and the tick-volume discrepancy are recorded in the script.
+No batch ledger, checkpoint or quarantine changes are made.

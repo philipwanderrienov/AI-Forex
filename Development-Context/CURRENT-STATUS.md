@@ -512,3 +512,22 @@ errors. Earlier target inspection found an old 0.5 source in the active MT5 dire
 and a lubuntu heartbeat; quarantine rose from 851 to 864. Preserve both versions and
 audit current state before recovery. Next: copy/compile 1.061 in the actual terminal
 directory, attach paused, inspect Inputs and verify source/floor/offset before activation.
+
+
+## September 13: scoped broker CSV repair preview
+
+Target 1.061 now activates with nextSequence 478 and healthy antix heartbeat;
+spool 0, quarantine 864. Candle readiness and restart testing remain pending.
+DBeaver confirms 16 candidate times (September 11 05:00–20:00 WIB) absent.
+Current broker CSV matches all 16 OHLC using UTC+3 for this interval. Fifteen tick
+volumes match; broker 02:00 has CSV 3750 versus quarantine 3752 (cause unknown).
+The extra legacy XAUUSD H1 at September 12 01:00 WIB already matches the DB.
+
+012-preview-xauusd-h1-recovery.sql selects current CSV values and ends in ROLLBACK.
+This is a scoped manual candle repair, not ingestion; no ledger, checkpoint or
+quarantine changes. Verified against canonical candle schema in isolated local
+PostgreSQL: dry run leaves zero rows, commit inserts 16, repeat inserts zero,
+existing differing row aborts without overwrite. No target repair executed yet.
+Next: execute entire script in DBeaver, review count/rows, then replace final
+ROLLBACK with COMMIT for an explicit repair. Other gaps and offset-0 checkpoints
+remain unresolved; this does not establish a general historical offset rule.
