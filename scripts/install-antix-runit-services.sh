@@ -31,7 +31,7 @@ if [[ ! -x "$repository_root/mt5-bridge/.venv/bin/python" ]]; then
     echo 'Python bridge venv belum tersedia di mt5-bridge/.venv.' >&2
     exit 1
 fi
-if [[ ! -d "$repository_root/mt5-bridge/spool" ]]; then
+if [[ ! -d /var/lib/forex-intelligence/spool && ! -d "$repository_root/mt5-bridge/spool" ]]; then
     echo 'Spool bridge belum tersedia. Jalankan bridge sekali sebelum instalasi service.' >&2
     exit 1
 fi

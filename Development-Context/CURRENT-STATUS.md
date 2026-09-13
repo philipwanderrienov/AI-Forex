@@ -552,3 +552,28 @@ dry run preserves 16 rows; commit adds 15; repeat adds zero; conflict aborts
 without overwrite. Target preview/commit still pending. No source state, ledger
 or quarantine mutations. Next execute entire 013 in DBeaver, review 15-row
 preview, commit, then rerun diagnostics. Readiness/offset-0 issues remain open.
+
+
+## September 13: diagnostics and external spool migration prepared
+
+Operator second repair diagnostics: candle count 50 -> 65, internal gap slots
+19 -> 4, matching absent broker export bars. Both EURUSD offset-0 checkpoint
+candles match broker CSV and DB at UTC+3; operator instructed to change only
+two offsets to 10800 and reattachment reports nextSequence 478.
+Repository deletion removed .venv/spool on target. Rebuilding venv and restoring
+851-pair archive recovered API/bridge heartbeat; 13 later envelopes were outside
+that backup. Operator reports a new database backup after repairs.
+
+Metadata 1.062 emits distinct readiness reasons, with repeat messages at most once
+per minute (reason changes immediate). Guard behavior remains fail closed.
+tools/migrate_runit_spool.py previews by default; --apply stops bridge, verifies
+full file hashes and preserves ownership/source before changing the launcher.
+External destination /var/lib/forex-intelligence/spool is retained on reinstall.
+Runtime code/.venv remain repository-dependent; this is not a published bridge
+release. Native 1.062 compile and target migration remain pending.
+
+Validation: 84 bridge tests including actual MQL guard bodies via C++ adapters;
+9 tool tests including copy preservation and unsafe destination/symlink refusal.
+No server migration was executed locally. Next: deploy migration with MT5 closed,
+verify health/count851, then compile 1.062 and inspect specific pause reason.
+Live publishing/backend persistence and restart tests still pending.

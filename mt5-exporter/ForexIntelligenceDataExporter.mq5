@@ -1,6 +1,6 @@
 #property strict
 // MQL5 Market requires a nonzero major version; project release remains 0.6.
-#property version "1.061"
+#property version "1.062"
 #property description "Read-only multi-symbol M15/H1/H4 candle exporter for Forex Intelligence"
 
 input string HeartbeatUrl = "http://127.0.0.1:8001/v1/mt5/heartbeat";
@@ -37,6 +37,9 @@ bool SequenceFault = false;
 bool ExporterReady = false;
 ulong ClockStableSince = 0;
 bool ClockObserved = false;
+string ClockPauseReason = "";
+string LastPauseReason = "";
+ulong LastPauseLogAt = 0;
 datetime FirstObservedBrokerTime = 0;
 datetime PublishedCheckpoint[INSTRUMENT_COUNT][TIMEFRAME_COUNT];
 int PublishedCheckpointUtcOffset[INSTRUMENT_COUNT][TIMEFRAME_COUNT];
@@ -107,15 +110,30 @@ bool ValidSequenceValue(const double value)
       MathFloor(value)==value;
   }
 
+string BrokerClockSampleReason(
+   const bool connected,const long utc_now,const long broker_now,
+   const long quote_now,const int expected_offset)
+  {
+   if(!connected)
+      return "TERMINAL_DISCONNECTED";
+   if(utc_now<=0 || broker_now<=0 || quote_now<=0)
+      return "CLOCK_OR_QUOTE_UNAVAILABLE";
+   long difference=broker_now-utc_now-expected_offset;
+   if(difference<-5 || difference>5)
+      return "BROKER_UTC_OFFSET_MISMATCH";
+   long quote_age=broker_now-quote_now;
+   if(quote_age<0)
+      return "QUOTE_AHEAD_OF_BROKER_CLOCK";
+   if(quote_age>60)
+      return "QUOTE_STALE";
+   return "";
+  }
+
 bool ValidBrokerClockSample(
    const bool connected,const long utc_now,const long broker_now,
    const long quote_now,const int expected_offset)
   {
-   if(!connected || utc_now<=0 || broker_now<=0 || quote_now<=0)
-      return false;
-   long difference=broker_now-utc_now-expected_offset;
-   long quote_age=broker_now-quote_now;
-   return difference>=-5 && difference<=5 && quote_age>=0 && quote_age<=60;
+   return BrokerClockSampleReason(connected,utc_now,broker_now,quote_now,expected_offset)=="";
   }
 
 bool WriteSequenceGuard(const double value)
@@ -232,9 +250,11 @@ bool ReserveNextSequence()
 bool BrokerClockReady()
   {
    datetime broker_now=TimeTradeServer();
-   if(!ValidBrokerClockSample(
+   datetime quote_now=TimeCurrent();
+   ClockPauseReason=BrokerClockSampleReason(
       (bool)TerminalInfoInteger(TERMINAL_CONNECTED),(long)TimeGMT(),
-      (long)broker_now,(long)TimeCurrent(),ExpectedBrokerUtcOffsetSeconds))
+      (long)broker_now,(long)quote_now,ExpectedBrokerUtcOffsetSeconds);
+   if(ClockPauseReason!="")
      {
       ClockObserved=false;
       return false;
@@ -243,11 +263,19 @@ bool BrokerClockReady()
      {
       ClockObserved=true;
       ClockStableSince=GetTickCount64();
-      FirstObservedBrokerTime=TimeCurrent();
+      FirstObservedBrokerTime=quote_now;
+     }
+   if(GetTickCount64()-ClockStableSince<30000)
+     {
+      ClockPauseReason="CLOCK_WARMUP_30_SECONDS";
       return false;
      }
-   // Require elapsed monotonic time AND a new broker quote since the first sample.
-   return GetTickCount64()-ClockStableSince>=30000 && TimeCurrent()>FirstObservedBrokerTime;
+   if(quote_now<=FirstObservedBrokerTime)
+     {
+      ClockPauseReason="WAITING_FOR_ADVANCING_QUOTE";
+      return false;
+     }
+   return true;
   }
 
 string BuildCheckpointStorageKey(
@@ -539,9 +567,18 @@ void PollLatestFinalCandles()
   {
    if(SequenceFault || !BrokerClockReady())
      {
-      Print("Candle publishing paused: sequence fault or broker clock not ready. Heartbeat is not candle readiness.");
+      string reason=SequenceFault ? "SEQUENCE_FAULT" : ClockPauseReason;
+      ulong now=GetTickCount64();
+      if(reason!=LastPauseReason || now-LastPauseLogAt>=60000)
+        {
+         PrintFormat("Candle publishing paused. reason=%s expectedOffset=%d Heartbeat is not candle readiness.",
+                     reason,ExpectedBrokerUtcOffsetSeconds);
+         LastPauseReason=reason;
+         LastPauseLogAt=now;
+        }
       return;
      }
+   LastPauseReason="";
    for(int instrument_index=0;instrument_index<INSTRUMENT_COUNT;instrument_index++)
      {
       for(int timeframe_index=0;timeframe_index<TIMEFRAME_COUNT;timeframe_index++)

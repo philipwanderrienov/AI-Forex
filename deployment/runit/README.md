@@ -191,3 +191,35 @@ SIGTERM ke wrapper foreground.
 
 Setelah reboot, periksa kedua status, API readiness, terminal health, spool depth, dan quarantine
 depth. Jangan menghapus atau replay quarantine secara otomatis.
+
+
+## Move an existing bridge spool outside the repository
+
+Close MT5 before this migration and run from the server checkout:
+
+    sudo python3 tools/migrate_runit_spool.py
+    sudo python3 tools/migrate_runit_spool.py --apply
+
+Preview makes no changes. Apply stops only the bridge with a bounded runit wait,
+copies all pending/quarantine files to /var/lib/forex-intelligence/spool and checks
+SHA-256 inventories before changing the installed launcher. Existing destination,
+symlinks and unexpected launcher contents are refused. The source is retained.
+Ownership is preserved. A launcher backup and manifest are stored in a private
+spool-migration-* directory under /var/lib/forex-intelligence.
+
+Any copy/configuration failure leaves the bridge stopped for inspection; do not
+delete a partial destination or start a second producer automatically. After
+success, check service status and /health; sv up does not prove HTTP readiness.
+For the September 13 restored archive expect quarantineDepth 851 and pending 0.
+Reopen MT5 only after the bridge responds, then verify antix heartbeat.
+
+Rollback before accepting new traffic: stop bridge, restore run.before to
+/etc/sv/forex-intelligence-bridge/run with mode 0755, then start bridge. After new
+traffic has arrived at the external location, reconcile files first; the retained
+repository copy is then stale and cannot be used as a lossless rollback.
+
+Existing installations with a customized launcher must be reviewed separately.
+The service installer prefers the external directory once migration has created
+it. Code and .venv still reside in the repository: deleting the checkout still
+breaks the runtime, but no longer deletes the migrated spool. Use git pull for
+updates. Migration does not replay quarantine or change the database/MT5 state.

@@ -14,7 +14,12 @@ set -a
 set +a
 
 export PYTHONUNBUFFERED=1
-export MT5_BRIDGE_SPOOL_PATH='@@REPOSITORY_ROOT@@/mt5-bridge/spool'
+# Retain the migrated location across service reinstalls.
+if [ -d /var/lib/forex-intelligence/spool ]; then
+    export MT5_BRIDGE_SPOOL_PATH='/var/lib/forex-intelligence/spool'
+else
+    export MT5_BRIDGE_SPOOL_PATH='@@REPOSITORY_ROOT@@/mt5-bridge/spool'
+fi
 
 until curl -fsS --max-time 2 http://127.0.0.1:5204/health/ready >/dev/null; do
     echo 'Waiting for Forex Intelligence API readiness.' >&2

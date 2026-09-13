@@ -14,7 +14,7 @@ constexpr int INSTRUMENT_COUNT=5, TIMEFRAME_COUNT=3;
 long VerifiedSequenceFloor=-1;
 int ExpectedBrokerUtcOffsetSeconds=10800, SequenceGuardHandle=-1;
 unsigned long Sequence=0, ClockStableSince=0;
-string SequenceStorageKey;
+string SequenceStorageKey, ClockPauseReason;
 bool SequenceFault=false, ClockObserved=false;
 datetime FirstObservedBrokerTime=0, PublishedCheckpoint[5][3];
 bool exists=false, variable=true, locked=false, fail_write=false, connected=true;
@@ -83,5 +83,12 @@ int main() {
     assert(!ValidBrokerClockSample(true,100000,110800,110801,10800)); // future quote
     assert(!ValidBrokerClockSample(true,100000,114400,114400,10800)); // offset transition
     assert(ValidBrokerClockSample(true,100000,100000,100000,0)); // verified UTC broker allowed
+    assert(BrokerClockSampleReason(false,1,1,1,0)=="TERMINAL_DISCONNECTED");
+    assert(BrokerClockSampleReason(true,0,1,1,0)=="CLOCK_OR_QUOTE_UNAVAILABLE");
+    assert(BrokerClockSampleReason(true,100000,110800,110739,10800)=="QUOTE_STALE");
+    assert(BrokerClockSampleReason(true,100000,110800,110801,10800)=="QUOTE_AHEAD_OF_BROKER_CLOCK");
+    assert(BrokerClockSampleReason(true,100000,114400,114400,10800)=="BROKER_UTC_OFFSET_MISMATCH");
+    reset(); assert(!BrokerClockReady()); assert(ClockPauseReason=="CLOCK_WARMUP_30_SECONDS");
+    ticks+=30000; assert(!BrokerClockReady()); assert(ClockPauseReason=="WAITING_FOR_ADVANCING_QUOTE");
     std::cout << "guard scenarios passed\n";
 }
