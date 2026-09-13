@@ -18,6 +18,7 @@ public static class DependencyInjection
         services.AddScoped<ICandleRepository, CandleRepository>();
         services.AddScoped<IMarketDataReadRepository, CandleRepository>();
         services.AddScoped<IRefreshTokenRepository, RefreshTokenRepository>();
+        services.AddScoped<IUserRepository, UserRepository>();
         services
             .AddHealthChecks()
             .AddCheck(
