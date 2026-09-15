@@ -1,6 +1,6 @@
 #property strict
 // MQL5 Market requires a nonzero major version; project release remains 0.6.
-#property version "1.062"
+#property version "1.063"
 #property description "Read-only multi-symbol M15/H1/H4 candle exporter for Forex Intelligence"
 
 input string HeartbeatUrl = "http://127.0.0.1:8001/v1/mt5/heartbeat";
@@ -28,6 +28,7 @@ input int ExpectedBrokerUtcOffsetSeconds = 86401;
 
 #define INSTRUMENT_COUNT 5
 #define TIMEFRAME_COUNT 3
+#define QUOTE_LEAD_TOLERANCE_SECONDS 15
 
 ulong Sequence = 0;
 string SequenceStorageKey = "";
@@ -122,7 +123,10 @@ string BrokerClockSampleReason(
    if(difference<-5 || difference>5)
       return "BROKER_UTC_OFFSET_MISMATCH";
    long quote_age=broker_now-quote_now;
-   if(quote_age<0)
+   // TimeCurrent() can legitimately lead TimeTradeServer() by a few seconds
+   // between server-clock refreshes. Keep the fail-closed guard, but tolerate
+   // the small skew observed on the live MetaQuotes demo feed.
+   if(quote_age < -QUOTE_LEAD_TOLERANCE_SECONDS)
       return "QUOTE_AHEAD_OF_BROKER_CLOCK";
    if(quote_age>60)
       return "QUOTE_STALE";
