@@ -80,13 +80,16 @@ int main() {
     connected=false; assert(!BrokerClockReady()); connected=true; assert(!BrokerClockReady()); // reconnect warms up
     reset(); broker_clock=utc_clock; quote_clock=broker_clock; assert(!BrokerClockReady()); // startup zero offset
     assert(!ValidBrokerClockSample(true,100000,110800,110739,10800)); // stale quote
-    assert(!ValidBrokerClockSample(true,100000,110800,110801,10800)); // future quote
+    assert(ValidBrokerClockSample(true,100000,110800,110811,10800)); // small broker/quote skew tolerated
+    assert(ValidBrokerClockSample(true,100000,110800,110815,10800)); // tolerance boundary accepted
+    assert(!ValidBrokerClockSample(true,100000,110800,110816,10800)); // excessive future quote
     assert(!ValidBrokerClockSample(true,100000,114400,114400,10800)); // offset transition
     assert(ValidBrokerClockSample(true,100000,100000,100000,0)); // verified UTC broker allowed
     assert(BrokerClockSampleReason(false,1,1,1,0)=="TERMINAL_DISCONNECTED");
     assert(BrokerClockSampleReason(true,0,1,1,0)=="CLOCK_OR_QUOTE_UNAVAILABLE");
     assert(BrokerClockSampleReason(true,100000,110800,110739,10800)=="QUOTE_STALE");
-    assert(BrokerClockSampleReason(true,100000,110800,110801,10800)=="QUOTE_AHEAD_OF_BROKER_CLOCK");
+    assert(BrokerClockSampleReason(true,100000,110800,110811,10800)=="");
+    assert(BrokerClockSampleReason(true,100000,110800,110816,10800)=="QUOTE_AHEAD_OF_BROKER_CLOCK");
     assert(BrokerClockSampleReason(true,100000,114400,114400,10800)=="BROKER_UTC_OFFSET_MISMATCH");
     reset(); assert(!BrokerClockReady()); assert(ClockPauseReason=="CLOCK_WARMUP_30_SECONDS");
     ticks+=30000; assert(!BrokerClockReady()); assert(ClockPauseReason=="WAITING_FOR_ADVANCING_QUOTE");
