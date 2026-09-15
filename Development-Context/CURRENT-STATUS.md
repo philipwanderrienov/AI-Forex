@@ -4,6 +4,27 @@ Last updated: 2026-09-15 (WIB)
 Owning branch / next IDE workspace: `Codex`
 User requested synchronization of `main`, `GPT`, and `Codex` after this update.
 
+## Fresh ingestion evidence (2026-09-15 late WIB)
+
+Operator supplied fresh PostgreSQL exports from `public.market_data_batches` and
+`public.candles` after market activity resumed.
+
+- Latest 30 batch rows cover sequence 499 through 528 with no missing sequence values.
+- Batch record counts in that sample: 25 batches with 32 records, 3 with 15 records,
+  1 with 25 records, and 1 with 3 records. Partial batches are not treated as an
+  error by themselves.
+- The supplied candle export contains 50 rows from 11:15 through 23:30 WIB, each
+  spaced exactly 15 minutes apart, with no duplicate open times and no internal
+  gaps in that sample.
+- OHLC invariants in the supplied 50-row sample are valid: High is not below
+  Open/Close, Low is not above Open/Close, and High is not below Low.
+- This is direct evidence that the current antix ingestion path reached database
+  persistence for the sampled data; it replaces the earlier "live persistence
+  pending" status for that sample window.
+- The candle export does not include instrument/timeframe columns, so this evidence
+  must not be generalized to all 15 canonical series. A full 5 instruments x
+  M15/H1/H4 audit is still required before declaring market-data recovery complete.
+
 ## Git/frontend checkpoint (2026-09-15)
 
 - Integrated remote commits through 7c99d2c: Angular operations dashboard,
@@ -15,24 +36,19 @@ User requested synchronization of `main`, `GPT`, and `Codex` after this update.
 - Next: verify database login/dashboard against the deployed API. For an existing
   users table, check the id default before rollout: SQL 014 uses CREATE TABLE IF
   NOT EXISTS and does not alter an existing table's default.
-- The operational observations below are from September 13; no new server or
-  market-open ingestion evidence was supplied during this Git synchronization.
 
 ## Recovery checkpoint (last observed 2026-09-13)
 
 Phase 02 operational hardening. Target is antiX Linux with runit. PostgreSQL,
 published .NET API and Python bridge run on the server. Prior API published-release
-activation, restart/reboot and manual binary rollback were verified. Current API
-and bridge health are healthy; live candle ingestion after this recovery is pending.
+activation, restart/reboot and manual binary rollback were verified.
 
-Exporter metadata 1.062 is running on the target. Latest Experts screenshot shows
+Exporter metadata 1.062 is running on the target. Earlier Experts evidence showed
 successful initialization with `source=antix-mt5-primary`, `nextSequence=478`,
-followed by `reason=QUOTE_STALE expectedOffset=10800`. This confirms the specific
-readiness block is an old quote. Do not disable the clock guard or reset sequence.
-Wait for advancing broker quotes and at least 30 seconds of stable clock samples,
-then verify bridge acceptance AND backend persistence. Heartbeat alone is not
-candle readiness. Native 1.062 runtime is observed; a separate compiler summary
-for 1.062 was not supplied. Prior 1.060 native compile had zero errors/warnings.
+followed by `reason=QUOTE_STALE expectedOffset=10800`. That earlier readiness block
+has now been followed by fresh database persistence evidence on September 15.
+Do not disable the clock guard or reset sequence. Heartbeat alone remains
+insufficient proof of candle readiness.
 
 ## Completed recovery on target
 
@@ -48,8 +64,7 @@ for 1.062 was not supplied. Prior 1.060 native compile had zero errors/warnings.
 - EURUSD H1 checkpoint candle and all nine supplied H1 CSV bars matched DB at
   UTC+3. M15 checkpoint and two neighboring bars also matched OHLC/tick volume.
   Operator was guided to change only antix EURUSD M15/H1 `.Offset` 0 -> 10800;
-  reattachment succeeded, still nextSequence 478. Backfill traversing those
-  checkpoints is not yet observed, so end-to-end correction remains unverified.
+  reattachment succeeded. Full cross-series backfill verification is still pending.
   Keys: M15 `8fcb81b4ff69b176a441e5bd` (.Time 1789006500),
   H1 `d17be2b0932493d3b30c1906` (.Time 1789002000).
 - Deleting/recloning the server repository removed `.venv` and spool. Recreated
@@ -70,8 +85,9 @@ Ledger antix sequence 1 dates from September 5. September 11 logs restarted at
 nextSequence 1 despite existing ledger entries. Ledger/quarantine sequence 118
 has different batch IDs/checksums. Root cause of state rollback/reuse remains
 unproven. Old 0.5 source defaulting to lubuntu was later found in the active MT5
-folder. Sequence variables last observed: antix 477, legacy lubuntu 15. Do not
-replay conflicting HTTP 409 envelopes unchanged or rename historical ledger rows.
+folder. Sequence variables last observed before the new sample: antix 477, legacy
+lubuntu 15. Do not replay conflicting HTTP 409 envelopes unchanged or rename
+historical ledger rows.
 
 Original backups: `~/forex-recovery-backups/quarantine-20260912-213012.tar.gz`
 (gzip verified), `gvariables-20260912-213103.dat`, and the pre-recovery Custom
@@ -86,8 +102,9 @@ actual exporter function bodies with simulated C++ adapters, not native Wine.
 Both SQL repairs were tested on isolated PostgreSQL with canonical candle schema:
 dry-run rollback, successful insertion, idempotent repeats and conflict refusal.
 
-Remaining: live ingestion after quote readiness; new batch ledger persistence;
-all 15 series audit; controlled restart/lock/failure tests of the new guards;
-historical DST normalization and broker-session calibration; remaining Phase 02
-scope (tick/spread, account telemetry, observability, dashboard WAIT, operations
-runbook and five-trading-day target soak). No Phase 03 completion claim.
+Remaining: audit all 15 canonical series; verify EURUSD M15/H1 backfill against
+repaired checkpoints; confirm current heartbeat/backlog/quarantine state; run
+controlled restart/lock/failure tests of the guards; historical DST normalization
+and broker-session calibration; remaining Phase 02 scope (tick/spread, account
+telemetry, observability, dashboard WAIT, operations runbook and five-trading-day
+target soak). No Phase 03 completion claim.
