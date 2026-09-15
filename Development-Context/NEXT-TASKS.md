@@ -10,8 +10,22 @@ Canonical phase contracts remain in Development-Phases; evidence is in CURRENT-S
 - [x] Disable Angular CLI analytics; frontend production build passes locally.
 - [ ] Verify login/dashboard with the deployed API and database; inspect the UUID
   default on existing users tables (SQL 014 does not alter existing tables).
-- [ ] Obtain current server ingestion evidence; recovery observations below are
-  from September 13 and do not establish current market-data health.
+
+## Fresh ingestion verification
+
+- [x] Confirm fresh database persistence from September 15 exports: sampled batch
+  sequences 499-528 are contiguous with no missing values.
+- [x] Confirm the supplied 50-row candle sample is internally continuous at 15-minute
+  intervals, has no duplicate open times, and passes basic OHLC invariants.
+- [ ] Identify the instrument/timeframe represented by that candle export, because
+  the supplied CSV does not include those columns.
+- [ ] Audit all five instruments x M15/H1/H4 against database/broker history before
+  declaring recovery complete; one clean sample does not prove all 15 series.
+- [ ] Verify EURUSD M15/H1 backfill crosses the previously repaired checkpoints.
+- [ ] Recheck current antix heartbeat, bridge pending backlog, and quarantine count;
+  investigate any increase without automatic replay/discard.
+- [ ] Run controlled restart and guard-lock/failure tests, verifying sequence continuity
+  and no duplicate/conflicting ingestion after restart.
 
 ## Completed in this recovery
 
@@ -23,21 +37,6 @@ Canonical phase contracts remain in Development-Phases; evidence is in CURRENT-S
 - [x] Restore bridge environment and 851 quarantine pairs after repository deletion.
 - [x] Migrate 1702 spool files to /var/lib/forex-intelligence/spool; health/count verified.
 - [x] Operator reports database backup after recovery; restore test remains pending.
-
-## Next operational verification: wait for advancing quotes
-
-1. Keep MT5/EA/API/bridge running with antix source and expected offset 10800.
-   Latest initialized nextSequence is 478; do not reset sequence or bypass guards.
-2. After new quotes and >=30 seconds of stable clock samples, inspect Experts for
-   bridge-accepted batches. If paused, use the specific reason to diagnose.
-3. Verify new antix batches in public.market_data_batches and actual candles in
-   public.candles. HTTP 202 confirms durable bridge acceptance, not backend commit.
-4. Check health: antix heartbeat fresh, backlog drains, quarantine remains 851.
-   Investigate any increase; do not automatically replay or discard payloads.
-5. Verify EURUSD M15/H1 backfill passes the repaired checkpoints. Audit all five
-   instruments x M15/H1/H4 against broker history before declaring full recovery.
-6. Run controlled restart and guard-lock/failure tests, verifying sequence continuity
-   and no duplicates. Successful reattachment alone does not prove all scenarios.
 
 ## Production deployment preparation (personal/private access)
 
