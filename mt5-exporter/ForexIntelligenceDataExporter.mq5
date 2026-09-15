@@ -1,6 +1,6 @@
 #property strict
 // MQL5 Market requires a nonzero major version; project release remains 0.6.
-#property version "1.063"
+#property version "1.064"
 #property description "Read-only multi-symbol M15/H1/H4 candle exporter for Forex Intelligence"
 
 input string HeartbeatUrl = "http://127.0.0.1:8001/v1/mt5/heartbeat";
@@ -25,6 +25,9 @@ input int MaxBackfillBarsPerSeries = 32;
 input long VerifiedSequenceFloor = -1;
 // Explicit current broker offset; sentinel prevents guessing during startup.
 input int ExpectedBrokerUtcOffsetSeconds = 86401;
+// One-time targeted migration for the two audited legacy EURUSD checkpoints that
+// were stored with offset 0 before offset-aware checkpoint persistence existed.
+input bool RepairLegacyEurUsdZeroOffset = false;
 
 #define INSTRUMENT_COUNT 5
 #define TIMEFRAME_COUNT 3
@@ -326,6 +329,38 @@ bool LoadCheckpoint(const int instrument_index,const int timeframe_index)
       return false;
      }
 
+   bool is_target_legacy_checkpoint=
+      SourceInstanceId=="antix-mt5-primary" &&
+      CanonicalInstruments[instrument_index]=="EURUSD" &&
+      (ExportTimeframeNames[timeframe_index]=="M15" ||
+       ExportTimeframeNames[timeframe_index]=="H1") &&
+      stored_offset==0.0;
+   if(RepairLegacyEurUsdZeroOffset && is_target_legacy_checkpoint)
+     {
+      if(ExpectedBrokerUtcOffsetSeconds!=10800)
+        {
+         PrintFormat(
+            "Legacy checkpoint repair refused because current offset is not the audited +10800. instrument=%s timeframe=%s currentOffset=%d",
+            CanonicalInstruments[instrument_index],ExportTimeframeNames[timeframe_index],
+            ExpectedBrokerUtcOffsetSeconds);
+         return false;
+        }
+      ResetLastError();
+      if(GlobalVariableSet(offset_key,(double)ExpectedBrokerUtcOffsetSeconds)==0)
+        {
+         PrintFormat(
+            "Legacy checkpoint offset repair failed. instrument=%s timeframe=%s error=%d",
+            CanonicalInstruments[instrument_index],ExportTimeframeNames[timeframe_index],GetLastError());
+         return false;
+        }
+      GlobalVariablesFlush();
+      PrintFormat(
+         "Legacy checkpoint offset repaired. instrument=%s timeframe=%s oldOffset=0 newOffset=%d checkpoint=%s",
+         CanonicalInstruments[instrument_index],ExportTimeframeNames[timeframe_index],
+         ExpectedBrokerUtcOffsetSeconds,TimeToString((datetime)stored_time));
+      stored_offset=(double)ExpectedBrokerUtcOffsetSeconds;
+     }
+
    PublishedCheckpoint[instrument_index][timeframe_index]=(datetime)stored_time;
    PublishedCheckpointUtcOffset[instrument_index][timeframe_index]=(int)stored_offset;
    return true;
@@ -606,6 +641,11 @@ int OnInit()
       VerifiedSequenceFloor>9007199254740991)
      {
       return AwaitConfiguration("Set a verified current broker UTC offset and a valid sequence floor (-1 disables guard creation).");
+     }
+   if(RepairLegacyEurUsdZeroOffset &&
+      (SourceInstanceId!="antix-mt5-primary" || ExpectedBrokerUtcOffsetSeconds!=10800))
+     {
+      return AwaitConfiguration("Legacy EURUSD offset repair is only allowed for antix-mt5-primary at audited UTC offset +10800.");
      }
    if(HeartbeatIntervalSeconds<1)
      {
