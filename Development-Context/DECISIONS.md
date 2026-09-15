@@ -103,3 +103,19 @@ The MT5 simulator must not invent a separate dummy schema. It must emit the same
 - Report specific exporter pause reasons. QUOTE_STALE with healthy heartbeat still
   requires advancing quotes and clock warmup, followed by backend persistence checks;
   it does not justify bypassing guards or declaring full recovery.
+
+## 2026-09-15 — Private production access via Tailscale
+
+- The application is intended for the user's personal use only; it is not planned as a public website.
+- For production remote access from different networks, prefer Tailscale over public exposure,
+  Cloudflare Tunnel, router port forwarding, or purchasing a domain.
+- The antiX server and authorized client devices should join the same Tailnet. Access the app by
+  Tailscale IP or MagicDNS; do not expose PostgreSQL or the .NET API directly to the public internet.
+- Production frontend must use an Angular production build, not `ng serve`.
+- Serve the Angular build through Nginx on antiX. Nginx should serve `/` from the Angular `dist`
+  output and reverse-proxy `/api/` to the .NET API bound internally on `127.0.0.1:5204` (or the
+  final documented internal API port).
+- Target production path: client device -> Tailscale -> Nginx -> Angular static files / .NET API -> PostgreSQL.
+- Before production deployment, prepare and verify Tailscale startup, Nginx configuration,
+  Angular build/deploy procedure, API internal binding, firewall rules, MagicDNS naming,
+  reboot persistence, and end-to-end access from a device on a different external network.
