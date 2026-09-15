@@ -22,7 +22,10 @@ class ExporterGuardTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             cpp = Path(tmp) / "guards.cpp"
             binary = Path(tmp) / "guards"
-            cpp.write_text(harness.replace("// EXPORTER_GUARD_FUNCTIONS", functions))
+            cpp.write_text(harness.replace(
+                "// EXPORTER_GUARD_FUNCTIONS",
+                "#define QUOTE_LEAD_TOLERANCE_SECONDS 15\n" + functions,
+            ))
             build = subprocess.run([compiler, "-std=c++17", "-Wall", "-Wextra", "-Werror", str(cpp), "-o", str(binary)], capture_output=True, text=True)
             self.assertEqual(0, build.returncode, build.stderr)
             result = subprocess.run([str(binary)], check=True, capture_output=True, text=True)
