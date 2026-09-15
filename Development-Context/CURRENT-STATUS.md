@@ -1,10 +1,24 @@
 # Current Development Status
 
-Last updated: 2026-09-13 (WIB)
+Last updated: 2026-09-15 (WIB)
 Owning branch / next IDE workspace: `Codex`
 User requested synchronization of `main`, `GPT`, and `Codex` after this update.
 
-## Current checkpoint
+## Git/frontend checkpoint (2026-09-15)
+
+- Integrated remote commits through 7c99d2c: Angular operations dashboard,
+  PostgreSQL-backed login, users SQL and database-generated user UUIDs.
+- Added the frontend npm lockfile and disabled Angular CLI analytics from the
+  existing local changes. Lockfile root dependencies match package.json.
+- Verified `cd frontend && npm run build` successfully and `git diff --check`.
+  Backend changes already committed upstream were not retested in this sync.
+- Next: verify database login/dashboard against the deployed API. For an existing
+  users table, check the id default before rollout: SQL 014 uses CREATE TABLE IF
+  NOT EXISTS and does not alter an existing table's default.
+- The operational observations below are from September 13; no new server or
+  market-open ingestion evidence was supplied during this Git synchronization.
+
+## Recovery checkpoint (last observed 2026-09-13)
 
 Phase 02 operational hardening. Target is antiX Linux with runit. PostgreSQL,
 published .NET API and Python bridge run on the server. Prior API published-release

@@ -1,8 +1,17 @@
 # Next Tasks
 
-Updated: 2026-09-13 (WIB). IDE work continues on `Codex`.
+Updated: 2026-09-15 (WIB). IDE work continues on `Codex`.
 Fetch and compare `main`, `GPT`, and `Codex` before development.
 Canonical phase contracts remain in Development-Phases; evidence is in CURRENT-STATUS.
+
+## Frontend/login follow-up
+
+- [x] Integrate upstream changes through 7c99d2c and track frontend npm lockfile.
+- [x] Disable Angular CLI analytics; frontend production build passes locally.
+- [ ] Verify login/dashboard with the deployed API and database; inspect the UUID
+  default on existing users tables (SQL 014 does not alter existing tables).
+- [ ] Obtain current server ingestion evidence; recovery observations below are
+  from September 13 and do not establish current market-data health.
 
 ## Completed in this recovery
 
