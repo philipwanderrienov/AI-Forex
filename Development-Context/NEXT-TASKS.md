@@ -39,6 +39,28 @@ Canonical phase contracts remain in Development-Phases; evidence is in CURRENT-S
 6. Run controlled restart and guard-lock/failure tests, verifying sequence continuity
    and no duplicates. Successful reattachment alone does not prove all scenarios.
 
+## Production deployment preparation (personal/private access)
+
+When the application is ready for production on the antiX server, use the private-access
+architecture recorded in `DECISIONS.md` rather than publishing the app directly to the internet.
+
+- [ ] Install and configure Tailscale on the antiX server and the user's authorized client devices.
+- [ ] Verify the server receives a stable Tailnet identity and can be reached by Tailscale IP;
+  optionally enable/test MagicDNS for a friendly private hostname.
+- [ ] Build Angular for production with `npm run build`; do not use `ng serve` in production.
+- [ ] Install/configure Nginx on antiX to serve the Angular `dist` output at `/`.
+- [ ] Configure Nginx `/api/` reverse proxy to the .NET API on an internal loopback endpoint
+  such as `127.0.0.1:5204`; keep PostgreSQL and the API port non-public.
+- [ ] Ensure the .NET API, Nginx, Tailscale, bridge, and required services survive reboot under
+  the antiX-supported service manager/runit arrangement.
+- [ ] Review firewall/listening sockets so only the intended local/Tailscale entry points are reachable.
+- [ ] Verify login, dashboard/API calls, and market-data views from a laptop/phone on a network
+  different from the server's LAN while connected to the same Tailnet.
+- [ ] Document production deploy/rollback steps for Angular static assets and Nginx config alongside
+  the existing published .NET API release/rollback procedure.
+- [ ] Do not add Cloudflare Tunnel, public router port-forwarding, or a paid domain unless the
+  application's access model changes from personal/private to public sharing.
+
 ## Development backlog after this checkpoint
 
 - Calibrate broker session boundaries using wider evidence. The four observed
